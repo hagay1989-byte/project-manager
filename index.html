@@ -188,7 +188,7 @@
         };
 
         // --- אזור הגדרות ניהול ---
-        const ADMIN_EMAILS = ['YOUR_EMAIL@gmail.com', 'manager@example.com']; // שים פה את המייל שלך
+        const ADMIN_EMAILS = ['hagay1989@gmail.com', 'manager@example.com']; // שים פה את המייל שלך
         
         // --- ספר הטלפונים הפנימי: שם -> אימייל ---
         // ===> תמלא פה את המיילים האמיתיים של כולם <===
@@ -472,9 +472,7 @@
             // איפוס צ'קבוקסים
             document.querySelectorAll('#npTeam input').forEach(c => c.checked = false);
             safeRemoveClass('newProjectModal', 'hidden'); safeAddClass('newProjectModal', 'flex');
-        }
-
-        function createNewProject() {
+        }function createNewProject() {
             const name = safeVal('npName'); const owner = safeVal('npOwner');
             if(!name) return alert('חובה להזין שם פרויקט'); if(!owner) return alert('חובה לבחור אחראי');
             
@@ -482,13 +480,7 @@
             const team = [];
             document.querySelectorAll('#npTeam input:checked').forEach(cb => team.push(cb.value));
 
-            const richTasks = [
-                { name: 'תכנון ראשוני ואישור תקציב', done: false, assignee: owner },
-                { name: 'הזמנת ציוד ורכש', done: false, assignee: 'חגית' },
-                { name: 'תיאום ספקים וקבלנים', done: false, assignee: 'יוסי' },
-                { name: 'ביצוע עבודות בשטח', done: false, assignee: 'אירע' },
-                { name: 'בקרת איכות ומסירה', done: false, assignee: 'ולרי' }
-            ];
+            // >>> כאן היה הקוד של richTasks שמחקנו <<<
 
             const newProj = {
                 userId: currentUser.uid,
@@ -502,11 +494,12 @@
                 estimatedCost: safeVal('npCost'),
                 status: 'planned',
                 team: team, 
-                tasks: richTasks,
+                tasks: [], // <--- שינוי חשוב: מתחילים עם רשימת משימות ריקה
                 activities: [],
                 progress: 0,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+            
             db.collection('projects').add(newProj).then(() => {
                 safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex');
             }).catch(e => alert("שגיאה: " + e.message));
@@ -559,3 +552,4 @@
     </script>
 </body>
 </html>
+
