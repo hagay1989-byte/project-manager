@@ -2,8 +2,8 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V28 - With Events Dept</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Project Manager V29 - Mobile Optimized</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,243 +15,214 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
     <style>
-        body { font-family: 'Heebo', sans-serif; background-color: #f0f2f5; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        body { font-family: 'Heebo', sans-serif; background-color: #f0f2f5; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        .glass-header { background: #ffffff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
-        .tab-btn { border-bottom: 3px solid transparent; color: #6b7280; padding: 10px 20px; transition: all 0.2s; font-weight: 500; font-size: 0.95rem; cursor: pointer; }
-        .tab-btn:hover { color: #1d4ed8; background-color: #f8fafc; }
+        .glass-header { background: #ffffff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); position: sticky; top: 0; z-index: 40; }
+        
+        /* טאבים גלילים למובייל */
+        .tabs-container { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+        .tab-btn { display: inline-block; border-bottom: 3px solid transparent; color: #6b7280; padding: 12px 16px; transition: all 0.2s; font-weight: 600; font-size: 0.9rem; cursor: pointer; }
         .tab-btn.active { border-bottom-color: #2563eb; color: #2563eb; background-color: #eff6ff; }
         
         .tab-content { display: none; height: 100%; }
         .tab-content.active { display: flex; flex-direction: column; animation: fadeIn 0.2s ease-out; }
         
-        .gantt-track { background-color: #e2e8f0; border-radius: 8px; height: 36px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
-        .gantt-bar { position: absolute; top: 4px; bottom: 4px; border-radius: 6px; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-left: 8px; color: white; font-size: 0.75rem; font-weight: bold; }
+        .gantt-track { background-color: #e2e8f0; border-radius: 8px; height: 32px; position: relative; overflow: hidden; }
+        .gantt-bar { position: absolute; top: 4px; bottom: 4px; border-radius: 6px; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-left: 8px; color: white; font-size: 0.7rem; font-weight: bold; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes scaleUp { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .animate-modal { animation: scaleUp 0.15s ease-out forwards; }
+        
+        /* התאמות מיוחדות למובייל */
+        @media (max-width: 640px) {
+            .mobile-hide-text span { display: none; }
+            .mobile-full-modal { height: 100vh !important; border-radius: 0 !important; max-height: 100vh !important; width: 100vw !important; }
+            .mobile-stack { flex-direction: column; }
+        }
     </style>
 </head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden text-sm md:text-base">
 
-    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm z-50">
-        <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md text-center">
-            <h2 class="text-3xl font-bold mb-8 text-gray-800">כניסה למערכת</h2>
-            <div id="authError" class="hidden bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg mb-4 text-sm"></div>
-            <div class="space-y-5">
-                <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-3.5 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
-                <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-3.5 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
-                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95">התחבר</button>
+    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm z-50 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+            <h2 class="text-2xl font-black mb-6 text-gray-800">כניסה למערכת</h2>
+            <div id="authError" class="hidden bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg mb-4 text-xs"></div>
+            <div class="space-y-4">
+                <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
+                <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition">התחבר</button>
             </div>
         </div>
     </div>
 
     <header class="glass-header z-30 flex-shrink-0">
-        <div class="max-w-7xl mx-auto px-6 py-4">
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md"><i class="fas fa-layer-group text-xl"></i></div>
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg shadow-md"><i class="fas fa-layer-group text-lg"></i></div>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900 leading-none">ניהול פרויקטים</h1>
-                        <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
+                        <h1 class="text-lg font-black text-gray-900 leading-none">ניהול פרויקטים</h1>
+                        <p class="text-[10px] text-gray-500 mt-0.5 font-medium">החברה העירונית</p>
                     </div>
                 </div>
-                <div class="flex gap-3 items-center">
-                    <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hidden sm:block"></span>
-                    
-                    <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md transition" title="הורד דוח אקסל">
-                        <i class="fas fa-file-excel"></i> ייצוא Excel
+                <div class="flex gap-2 items-center">
+                    <button onclick="exportToExcel()" class="mobile-hide-text bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm" title="אקסל">
+                        <i class="fas fa-file-excel"></i> <span>ייצוא</span>
                     </button>
-                    <button onclick="openAnalyticsModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md transition" title="דשבורד ניהולי">
-                        <i class="fas fa-chart-pie"></i> תמונת מצב
+                    <button onclick="openAnalyticsModal()" class="mobile-hide-text bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 shadow-sm" title="נתונים">
+                        <i class="fas fa-chart-pie"></i> <span>מצב</span>
                     </button>
-                    
-                    <button onclick="openNewProjectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
-                        <i class="fas fa-plus"></i> פרויקט חדש
-                    </button>
-                    <button onclick="auth.signOut()" class="text-gray-400 hover:text-red-500 p-2 transition bg-gray-50 rounded-lg hover:bg-red-50"><i class="fas fa-sign-out-alt text-lg"></i></button>
+                    <button onclick="auth.signOut()" class="text-gray-400 bg-gray-50 p-2 rounded-lg border border-gray-100"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
             </div>
 
-            <div class="flex justify-between items-center">
-                <div class="bg-gray-100 p-1.5 rounded-xl flex border border-gray-200">
-                    <button onclick="switchView('list')" id="viewBtnList" class="px-4 py-1.5 text-sm rounded-lg transition font-medium flex items-center gap-2"><i class="fas fa-list"></i> רשימה</button>
-                    <button onclick="switchView('kanban')" id="viewBtnKanban" class="px-4 py-1.5 text-sm rounded-lg transition font-medium flex items-center gap-2"><i class="fas fa-columns"></i> לוח</button>
+            <div class="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center bg-gray-50 p-2 rounded-xl border border-gray-100">
+                <div class="flex w-full md:w-auto gap-2">
+                    <button onclick="switchView('list')" id="viewBtnList" class="flex-1 md:flex-none justify-center px-4 py-2 text-xs font-bold rounded-lg transition flex items-center gap-2 bg-white text-blue-600 shadow-sm"><i class="fas fa-list"></i> רשימה</button>
+                    <button onclick="switchView('kanban')" id="viewBtnKanban" class="flex-1 md:flex-none justify-center px-4 py-2 text-xs font-medium rounded-lg transition flex items-center gap-2 text-gray-500"><i class="fas fa-columns"></i> לוח</button>
+                    <button onclick="openNewProjectModal()" class="flex-1 md:flex-none justify-center bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm"><i class="fas fa-plus"></i> <span class="hidden sm:inline">חדש</span></button>
                 </div>
-                <div class="flex gap-3">
-                    <select id="filterDept" onchange="renderProjects()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none cursor-pointer hover:border-blue-300 transition shadow-sm"><option value="all">כל המחלקות</option></select>
-                    <select id="filterStatus" onchange="renderProjects()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none cursor-pointer hover:border-blue-300 transition shadow-sm"><option value="all">כל הסטטוסים</option></select>
+                <div class="flex w-full md:w-auto gap-2">
+                    <select id="filterDept" onchange="renderProjects()" class="flex-1 md:flex-none bg-white border border-gray-200 text-gray-700 text-xs rounded-lg px-3 py-2 outline-none h-9"><option value="all">כל המחלקות</option></select>
+                    <select id="filterStatus" onchange="renderProjects()" class="flex-1 md:flex-none bg-white border border-gray-200 text-gray-700 text-xs rounded-lg px-3 py-2 outline-none h-9"><option value="all">כל הסטטוסים</option></select>
                 </div>
             </div>
         </div>
     </header>
 
-    <main id="mainContent" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8 overflow-y-auto custom-scrollbar">
+    <main id="mainContent" class="flex-1 max-w-7xl mx-auto w-full px-4 py-6 overflow-y-auto custom-scrollbar">
         </main>
 
-    <div id="analyticsModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                <h3 class="text-2xl font-black text-gray-800 flex items-center gap-2"><i class="fas fa-chart-line text-indigo-600"></i> תמונת מצב תקציבית</h3>
-                <button onclick="document.getElementById('analyticsModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 p-2 rounded-lg transition"><i class="fas fa-times text-gray-500"></i></button>
+    <div id="analyticsModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-0 md:p-4 backdrop-blur-sm">
+        <div class="bg-white md:rounded-3xl w-full max-w-5xl h-full md:h-[85vh] flex flex-col shadow-2xl animate-modal overflow-hidden mobile-full-modal">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-white flex-shrink-0">
+                <h3 class="text-xl font-black text-gray-800 flex items-center gap-2"><i class="fas fa-chart-line text-indigo-600"></i> תמונת מצב</h3>
+                <button onclick="document.getElementById('analyticsModal').classList.add('hidden')" class="bg-gray-100 p-2 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times"></i></button>
             </div>
-            <div class="p-8 overflow-y-auto bg-gray-50 h-full">
-                <div class="grid grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-sm text-gray-500 font-bold uppercase mb-1">תקציב כולל (משוער)</div>
-                        <div class="text-3xl font-black text-indigo-600" id="totalBudgetDisplay">₪0</div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-sm text-gray-500 font-bold uppercase mb-1">סה"כ פרויקטים</div>
-                        <div class="text-3xl font-black text-gray-800" id="totalProjectsDisplay">0</div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <div class="text-sm text-gray-500 font-bold uppercase mb-1">פרויקטים בסיכון</div>
-                        <div class="text-3xl font-black text-red-500" id="highRiskDisplay">0</div>
-                    </div>
+            <div class="p-4 md:p-8 overflow-y-auto bg-gray-50 h-full">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100"><div class="text-xs text-gray-500 font-bold uppercase mb-1">תקציב כולל</div><div class="text-2xl font-black text-indigo-600" id="totalBudgetDisplay">₪0</div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100"><div class="text-xs text-gray-500 font-bold uppercase mb-1">סה"כ פרויקטים</div><div class="text-2xl font-black text-gray-800" id="totalProjectsDisplay">0</div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100"><div class="text-xs text-gray-500 font-bold uppercase mb-1">בסיכון</div><div class="text-2xl font-black text-red-500" id="highRiskDisplay">0</div></div>
                 </div>
-
-                <div class="grid grid-cols-2 gap-8 h-96">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                        <h4 class="font-bold text-gray-700 mb-4">תקציב לפי מחלקה</h4>
-                        <div class="flex-1 relative"><canvas id="budgetChart"></canvas></div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                        <h4 class="font-bold text-gray-700 mb-4">פרויקטים מובילים (עלות)</h4>
-                        <div class="flex-1 relative"><canvas id="topProjectsChart"></canvas></div>
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 h-64"><h4 class="font-bold text-gray-700 mb-2 text-xs">תקציב לפי מחלקה</h4><div class="h-full relative"><canvas id="budgetChart"></canvas></div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 h-64"><h4 class="font-bold text-gray-700 mb-2 text-xs">פרויקטים מובילים</h4><div class="h-full relative"><canvas id="topProjectsChart"></canvas></div></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="fullProjectModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-40 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-6xl h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-modal">
-            <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white flex-shrink-0">
-                <div>
-                    <h2 id="modalProjectTitle" class="text-2xl font-bold text-gray-800 tracking-tight"></h2>
-                    <div class="flex items-center gap-3 mt-1 text-sm text-gray-500" id="modalProjectSub"></div>
+    <div id="fullProjectModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-40 p-0 md:p-4 backdrop-blur-sm">
+        <div class="bg-white md:rounded-2xl w-full max-w-6xl h-full md:h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-modal mobile-full-modal">
+            <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-start bg-white flex-shrink-0">
+                <div class="flex-1 min-w-0">
+                    <h2 id="modalProjectTitle" class="text-xl font-black text-gray-800 tracking-tight truncate"></h2>
+                    <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500" id="modalProjectSub"></div>
                 </div>
-                <div class="flex gap-3">
-                    <button onclick="deleteCurrentProject()" class="text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl text-sm font-bold transition border border-red-100 flex items-center gap-2"><i class="fas fa-trash"></i> מחק</button>
-                    <button onclick="saveFullProject()" class="bg-blue-600 text-white hover:bg-blue-700 px-6 py-2 rounded-xl text-sm font-bold transition shadow-md flex items-center gap-2"><i class="fas fa-save"></i> שמור</button>
-                    <button onclick="closeFullModal()" class="text-gray-400 hover:text-gray-600 ml-3 p-2 transition"><i class="fas fa-times text-2xl"></i></button>
-                </div>
+                <button onclick="closeFullModal()" class="bg-gray-100 text-gray-500 p-2 rounded-full w-8 h-8 flex items-center justify-center mr-2 flex-shrink-0"><i class="fas fa-times"></i></button>
             </div>
 
-            <div class="flex border-b border-gray-100 px-8 bg-white gap-4 flex-shrink-0">
+            <div class="border-b border-gray-100 px-4 bg-white flex-shrink-0 tabs-container">
                 <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active"><i class="far fa-eye ml-1"></i> סקירה</button>
-                <button onclick="switchTab('kanban')" id="tab-kanban" class="tab-btn"><i class="fas fa-tasks ml-1"></i> ניהולי</button>
-                <button onclick="switchTab('timeline')" id="tab-timeline" class="tab-btn"><i class="fas fa-stream ml-1"></i> ציר זמן</button>
+                <button onclick="switchTab('kanban')" id="tab-kanban" class="tab-btn"><i class="fas fa-tasks ml-1"></i> משימות</button>
+                <button onclick="switchTab('timeline')" id="tab-timeline" class="tab-btn"><i class="fas fa-stream ml-1"></i> לו"ז</button>
                 <button onclick="switchTab('activity')" id="tab-activity" class="tab-btn"><i class="far fa-comments ml-1"></i> פעילות</button>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar relative">
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 custom-scrollbar relative">
                 
-                <div id="content-overview" class="tab-content active gap-6">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-shrink-0">
-                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                            <div class="text-gray-400 text-xs font-bold uppercase mb-2">התקדמות</div>
-                            <div class="flex items-center gap-3">
-                                <div id="statProgress" class="text-3xl font-bold text-blue-600">0%</div>
-                                <div class="text-sm text-gray-500 mt-1">הושלם</div>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2 mt-3 overflow-hidden"><div id="statProgressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+                <div id="content-overview" class="tab-content active gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 flex-shrink-0">
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm col-span-2 md:col-span-1">
+                            <div class="flex justify-between items-center mb-2"><span class="text-gray-400 text-[10px] font-bold uppercase">התקדמות</span><span id="statProgress" class="text-xl font-bold text-blue-600">0%</span></div>
+                            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div id="statProgressBar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div></div>
                         </div>
-                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
-                            <div class="text-gray-400 text-xs font-bold uppercase mb-2">זמנים</div>
-                            <div class="flex flex-col gap-1.5">
-                                <div class="flex justify-between text-sm border-b border-dashed border-gray-100 pb-1"><span>התחלה:</span> <span id="viewStartDate" class="font-bold text-gray-800 font-mono"></span></div>
-                                <div class="flex justify-between text-sm pt-1"><span>יעד:</span> <span id="viewEndDate" class="font-bold text-gray-800 font-mono"></span></div>
-                            </div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                            <div class="text-gray-400 text-[10px] font-bold uppercase mb-1">זמנים</div>
+                            <div class="text-xs space-y-1"><div class="flex justify-between"><span>התחלה:</span> <span id="viewStartDate" class="font-bold"></span></div><div class="flex justify-between"><span>יעד:</span> <span id="viewEndDate" class="font-bold"></span></div></div>
                         </div>
-                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
-                            <div>
-                                <div class="text-gray-400 text-xs font-bold uppercase mb-1">רמת סיכון</div>
-                                <div id="statRisk" class="text-xl font-bold text-gray-800">נמוכה</div>
-                            </div>
-                            <div class="bg-blue-50 text-blue-600 w-12 h-12 rounded-full flex items-center justify-center"><i class="fas fa-shield-alt text-xl"></i></div>
+                        <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                            <div><div class="text-gray-400 text-[10px] font-bold uppercase">סיכון</div><div id="statRisk" class="text-lg font-bold text-gray-800">נמוכה</div></div>
+                            <i class="fas fa-shield-alt text-2xl text-blue-100"></i>
                         </div>
                     </div>
 
-                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex-grow">
-                        <h3 class="font-bold text-gray-800 text-lg mb-4 pb-2 border-b border-gray-100">עריכת פרטים</h3>
-                        <div class="grid grid-cols-2 gap-6">
-                            <div class="space-y-4">
-                                <div><label class="block text-xs font-bold text-gray-500 mb-1">תאריך התחלה</label><input type="date" id="editStartDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:border-blue-500 outline-none transition"></div>
-                                <div><label class="block text-xs font-bold text-gray-500 mb-1">תאריך סיום</label><input type="date" id="editEndDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm focus:border-blue-500 outline-none transition"></div>
+                    <div class="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm flex-grow">
+                        <h3 class="font-bold text-gray-800 text-sm mb-4 pb-2 border-b border-gray-100">עריכה</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-3">
+                                <div><label class="block text-[10px] font-bold text-gray-500 mb-1">תאריך התחלה</label><input type="date" id="editStartDate" onchange="syncData()" class="w-full border border-gray-200 rounded-lg p-2 text-sm bg-gray-50"></div>
+                                <div><label class="block text-[10px] font-bold text-gray-500 mb-1">תאריך סיום</label><input type="date" id="editEndDate" onchange="syncData()" class="w-full border border-gray-200 rounded-lg p-2 text-sm bg-gray-50"></div>
                             </div>
-                            <div class="space-y-4">
-                                <div><label class="block text-xs font-bold text-gray-500 mb-1">סטטוס</label><select id="editStatus" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none cursor-pointer"></select></div>
-                                <div><label class="block text-xs font-bold text-gray-500 mb-1">אחראי</label><select id="editOwner" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none cursor-pointer"></select></div>
+                            <div class="space-y-3">
+                                <div><label class="block text-[10px] font-bold text-gray-500 mb-1">סטטוס</label><select id="editStatus" onchange="syncData()" class="w-full border border-gray-200 rounded-lg p-2 text-sm bg-gray-50"></select></div>
+                                <div><label class="block text-[10px] font-bold text-gray-500 mb-1">אחראי</label><select id="editOwner" onchange="syncData()" class="w-full border border-gray-200 rounded-lg p-2 text-sm bg-gray-50"></select></div>
                             </div>
-                            <div class="col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1">תיאור ומטרה</label><textarea id="editDesc" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-3 text-sm focus:border-blue-500 outline-none transition resize-none" rows="2"></textarea></div>
+                            <div class="md:col-span-2"><label class="block text-[10px] font-bold text-gray-500 mb-1">תיאור</label><textarea id="editDesc" onchange="syncData()" class="w-full border border-gray-200 rounded-lg p-2 text-sm bg-gray-50" rows="3"></textarea></div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-gray-100 flex justify-between">
+                            <button onclick="deleteCurrentProject()" class="text-red-500 text-xs font-bold flex items-center gap-1"><i class="fas fa-trash"></i> מחק פרויקט</button>
+                            <button onclick="saveFullProject()" class="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-sm">שמור שינויים</button>
                         </div>
                     </div>
                 </div>
 
-                <div id="content-kanban" class="tab-content gap-4">
-                    <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-                        <input id="newTaskInput" type="text" class="flex-1 bg-transparent border-none text-sm outline-none px-3" placeholder="הקלד משימה חדשה ולחץ Enter..." onkeypress="if(event.key === 'Enter') addTask()">
-                        <button onclick="addTask()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-sm transition flex items-center gap-2"><i class="fas fa-plus"></i> הוסף משימה</button>
+                <div id="content-kanban" class="tab-content gap-3">
+                    <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200 shadow-sm sticky top-0 z-10">
+                        <input id="newTaskInput" type="text" class="flex-1 bg-transparent border-none text-sm outline-none px-2" placeholder="משימה חדשה..." onkeypress="if(event.key === 'Enter') addTask()">
+                        <button onclick="addTask()" class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"><i class="fas fa-plus"></i></button>
                     </div>
-                    <div id="tasksList" class="space-y-2 flex-grow overflow-y-auto pr-1"></div>
+                    <div id="tasksList" class="space-y-2 flex-grow overflow-y-auto pb-4"></div>
                 </div>
 
                 <div id="content-timeline" class="tab-content">
-                    <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
-                        <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2"><i class="fas fa-chart-gantt text-blue-500"></i> ציר זמן פרויקט</h3>
+                    <div class="bg-white p-4 md:p-8 rounded-xl border border-gray-200 shadow-sm h-full overflow-y-auto">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm"><i class="fas fa-chart-gantt text-blue-500"></i> ציר זמן</h3>
                         <div id="ganttChartContainer"></div>
                     </div>
                 </div>
 
-                <div id="content-activity" class="tab-content gap-4">
-                    <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex-shrink-0">
-                        <textarea id="newNoteText" class="w-full bg-gray-50 border-none rounded-xl p-3 text-sm mb-2 outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 transition" rows="2" placeholder="כתוב הערה..."></textarea>
+                <div id="content-activity" class="tab-content gap-3">
+                    <div class="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex-shrink-0 sticky top-0 z-10">
+                        <textarea id="newNoteText" class="w-full bg-gray-50 border-none rounded-lg p-2 text-sm mb-2 outline-none" rows="2" placeholder="עדכון חדש..."></textarea>
                         <div class="flex justify-between items-center">
-                            <div class="flex items-center gap-2">
-                                <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(this)">
-                                <button onclick="document.getElementById('fileInput').click()" class="text-gray-500 hover:text-blue-600 p-2 rounded-lg hover:bg-gray-100 transition flex items-center gap-2 text-sm">
-                                    <i class="fas fa-paperclip"></i> צרף קובץ
-                                </button>
-                                <span id="fileNameDisplay" class="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded hidden"></span>
-                            </div>
-                            <button onclick="addActivityNote()" class="bg-blue-600 text-white px-5 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-700 transition shadow-sm">שלח</button>
+                            <i class="fas fa-paperclip text-gray-400 p-2 cursor-pointer" onclick="document.getElementById('fileInput').click()"></i>
+                            <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(this)">
+                            <button onclick="addActivityNote()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold">שלח</button>
                         </div>
+                        <span id="fileNameDisplay" class="text-[10px] text-blue-600 block mt-1 hidden"></span>
                     </div>
-                    <div id="activityFeed" class="space-y-3 flex-grow overflow-y-auto pr-1"></div>
+                    <div id="activityFeed" class="space-y-3 flex-grow overflow-y-auto pb-4"></div>
                 </div>
-
             </div>
         </div>
     </div>
 
-    <div id="newProjectModal" class="fixed inset-0 bg-gray-900 bg-opacity-70 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-modal">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-2xl">
-                <h3 class="text-xl font-bold text-gray-800">פרויקט חדש</h3>
-                <button onclick="document.getElementById('newProjectModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 p-2 rounded-lg transition"><i class="fas fa-times text-gray-500"></i></button>
+    <div id="newProjectModal" class="fixed inset-0 bg-gray-900 bg-opacity-70 hidden items-center justify-center z-50 p-0 md:p-4 backdrop-blur-sm">
+        <div class="bg-white md:rounded-2xl w-full max-w-2xl h-full md:max-h-[90vh] flex flex-col shadow-2xl animate-modal mobile-full-modal">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-white flex-shrink-0">
+                <h3 class="text-lg font-bold text-gray-800">פרויקט חדש</h3>
+                <button onclick="document.getElementById('newProjectModal').classList.add('hidden')" class="bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
             </div>
-            <div class="p-8 overflow-y-auto space-y-6 custom-scrollbar">
-                <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">שם הפרויקט *</label><input id="npName" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition"></div>
-                <div class="grid grid-cols-2 gap-5">
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">אתר</label><select id="npSite" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none cursor-pointer"></select></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">מחלקה</label><select id="npDept" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none cursor-pointer"></select></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">אחראי *</label><select id="npOwner" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none cursor-pointer"></select></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">עדיפות</label><select id="npPriority" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none cursor-pointer"><option value="low">נמוכה</option><option value="medium" selected>בינונית</option><option value="high">גבוהה</option></select></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">תאריך התחלה *</label><input type="date" id="npStart" class="w-full border border-gray-200 rounded-xl p-3 outline-none"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">תאריך סיום</label><input type="date" id="npEnd" class="w-full border border-gray-200 rounded-xl p-3 outline-none"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">עלות משוערת</label><input type="number" id="npCost" class="w-full border border-gray-200 rounded-xl p-3 outline-none" placeholder="0"></div>
+            <div class="p-4 md:p-8 overflow-y-auto space-y-5 custom-scrollbar bg-white">
+                <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">שם הפרויקט</label><input id="npName" class="w-full border border-gray-200 rounded-xl p-3 outline-none text-sm focus:border-blue-500 transition"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">אתר</label><select id="npSite" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none text-sm"></select></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">מחלקה</label><select id="npDept" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none text-sm"></select></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">אחראי</label><select id="npOwner" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none text-sm"></select></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">עדיפות</label><select id="npPriority" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none text-sm"><option value="low">נמוכה</option><option value="medium" selected>בינונית</option><option value="high">גבוהה</option></select></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">התחלה</label><input type="date" id="npStart" class="w-full border border-gray-200 rounded-xl p-3 outline-none text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">סיום</label><input type="date" id="npEnd" class="w-full border border-gray-200 rounded-xl p-3 outline-none text-sm"></div>
+                    <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">תקציב</label><input type="number" id="npCost" class="w-full border border-gray-200 rounded-xl p-3 outline-none text-sm" placeholder="0"></div>
                 </div>
-                <div><label class="block text-xs font-bold text-gray-500 mb-2 uppercase">שותפים</label><div id="npTeam" class="grid grid-cols-4 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100"></div></div>
+                <div><label class="block text-[10px] font-bold text-gray-500 mb-2 uppercase">שותפים</label><div id="npTeam" class="grid grid-cols-3 md:grid-cols-4 gap-2"></div></div>
             </div>
-            <div class="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
-                <button onclick="document.getElementById('newProjectModal').classList.add('hidden')" class="px-6 py-2.5 border rounded-xl hover:bg-gray-100 transition font-medium">ביטול</button>
-                <button onclick="createNewProject()" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-md hover:bg-blue-700 transition transform hover:-translate-y-0.5">צור</button>
+            <div class="p-4 border-t bg-gray-50 flex justify-end gap-3 flex-shrink-0">
+                <button onclick="createNewProject()" class="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-md">צור פרויקט</button>
             </div>
         </div>
     </div>
@@ -270,7 +241,6 @@
 
         const TEAM_MEMBERS = ['ולרי', 'חגית', 'רונית', 'יפית', 'זאנה', 'חגי', 'עירא', 'ירדן', 'מיכאלה', 'מעיין', 'אלכס'];
         const SITES = ['מבנה מנהלה', 'מבנה מספנה', 'חוף הים', 'שובר גלים', 'אירועים', 'רציפים'];
-        // הרשימה המעודכנת
         const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים'];
         const STATUSES = { 'planned': {label:'מתוכנן', color:'bg-gray-100 text-gray-600', icon:'fa-calendar'}, 'in-progress': {label:'בביצוע', color:'bg-blue-100 text-blue-600', icon:'fa-spinner'}, 'blocked': {label:'אבן דרך', color:'bg-purple-100 text-purple-600', icon:'fa-flag'}, 'done': {label:'הושלם', color:'bg-green-100 text-green-600', icon:'fa-check'} };
 
@@ -300,7 +270,6 @@
                 currentUser = user;
                 safeAddClass('loginScreen', 'hidden');
                 safeRemoveClass('app', 'hidden');
-                safeText('userEmailDisplay', user.email);
                 initApp();
             } else {
                 safeRemoveClass('loginScreen', 'hidden');
@@ -331,7 +300,7 @@
             populate('npSite', SITES); populate('npDept', DEPARTMENTS); populate('npOwner', TEAM_MEMBERS);
             const editOwner = document.getElementById('editOwner'); if(editOwner) editOwner.innerHTML = TEAM_MEMBERS.map(m => `<option value="${m}">${m}</option>`).join('');
             const editStatus = document.getElementById('editStatus'); if(editStatus) editStatus.innerHTML = Object.keys(STATUSES).map(k => `<option value="${k}">${STATUSES[k].label}</option>`).join('');
-            const teamContainer = document.getElementById('npTeam'); if(teamContainer) teamContainer.innerHTML = TEAM_MEMBERS.map(m => `<label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border hover:bg-blue-50 transition"><input type="checkbox" value="${m}" class="rounded text-blue-600 w-4 h-4"><span class="text-xs font-bold text-gray-700">${m}</span></label>`).join('');
+            const teamContainer = document.getElementById('npTeam'); if(teamContainer) teamContainer.innerHTML = TEAM_MEMBERS.map(m => `<label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border hover:bg-blue-50 transition"><input type="checkbox" value="${m}" class="rounded text-blue-600 w-4 h-4"><span class="text-[10px] font-bold text-gray-700">${m}</span></label>`).join('');
             const depFilter = document.getElementById('filterDept'); if(depFilter) { depFilter.innerHTML = '<option value="all">כל המחלקות</option>'; DEPARTMENTS.forEach(d => depFilter.innerHTML += `<option value="${d}">${d}</option>`); }
             const statFilter = document.getElementById('filterStatus'); if(statFilter) { statFilter.innerHTML = '<option value="all">כל הסטטוסים</option>'; Object.keys(STATUSES).forEach(k => statFilter.innerHTML += `<option value="${k}">${STATUSES[k].label}</option>`); }
         }
@@ -340,8 +309,8 @@
             const container = safeGet('mainContent'); if(!container) return;
             const dept = safeVal('filterDept'); const status = safeVal('filterStatus');
             const filtered = projectsData.filter(p => { if(dept !== 'all' && p.department !== dept) return false; if(status !== 'all' && p.status !== status) return false; return true; });
-            if (currentView === 'list') { updateViewButtons('list'); container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${filtered.map(p => createProjectCardHTML(p)).join('')}</div>`; } 
-            else { updateViewButtons('kanban'); const cols = Object.keys(STATUSES).map(k => { const items = filtered.filter(p => p.status === k); return `<div class="bg-gray-50 p-4 rounded-2xl min-w-[280px] h-fit border border-gray-200"><h3 class="font-bold text-gray-700 mb-4 flex justify-between items-center px-1"><span class="flex items-center gap-2"><i class="fas ${STATUSES[k].icon} text-gray-400"></i> ${STATUSES[k].label}</span><span class="bg-white text-gray-600 text-xs px-2.5 py-1 rounded-lg shadow-sm border border-gray-100 font-mono">${items.length}</span></h3><div class="space-y-3">${items.map(p => createProjectCardHTML(p)).join('')}</div></div>`; }).join(''); container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto pb-4">${cols}</div>`; }
+            if (currentView === 'list') { updateViewButtons('list'); container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">${filtered.map(p => createProjectCardHTML(p)).join('')}</div>`; } 
+            else { updateViewButtons('kanban'); const cols = Object.keys(STATUSES).map(k => { const items = filtered.filter(p => p.status === k); return `<div class="bg-gray-50 p-3 rounded-xl min-w-[260px] md:min-w-[280px] h-fit border border-gray-200 mb-4 md:mb-0"><h3 class="font-bold text-gray-700 mb-3 flex justify-between items-center px-1"><span class="flex items-center gap-2"><i class="fas ${STATUSES[k].icon} text-gray-400"></i> ${STATUSES[k].label}</span><span class="bg-white text-gray-600 text-xs px-2.5 py-1 rounded-lg shadow-sm border border-gray-100 font-mono">${items.length}</span></h3><div class="space-y-3">${items.map(p => createProjectCardHTML(p)).join('')}</div></div>`; }).join(''); container.innerHTML = `<div class="flex flex-col md:grid md:grid-cols-4 gap-4 overflow-x-auto pb-4">${cols}</div>`; }
         }
 
         function createProjectCardHTML(p) {
@@ -349,14 +318,14 @@
             const tasks = p.tasks || [];
             const done = tasks.filter(t => t.done).length;
             const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
-            let risk = ''; if(p.status === 'blocked') risk = `<div class="mt-4 pt-3 border-t border-gray-50 text-red-600 bg-red-50 p-2 rounded-lg text-xs font-bold flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i> חסום / סיכון גבוה</div>`; else if (progress < 50 && p.endDate && new Date(p.endDate) < new Date()) risk = `<div class="mt-4 pt-3 border-t border-gray-50 text-yellow-600 bg-yellow-50 p-2 rounded-lg text-xs font-bold flex items-center gap-2"><i class="fas fa-bolt"></i> סיכון בינוני</div>`;
-            return `<div onclick="openFullProject('${p.id}')" class="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1 relative group"><div class="flex justify-between items-start mb-4"><div><h3 class="font-bold text-gray-800 text-lg mb-1 group-hover:text-blue-600 transition">${p.name}</h3><p class="text-xs text-gray-500 flex items-center gap-1.5"><i class="fas fa-map-marker-alt text-gray-300"></i> ${p.site}</p></div><span class="px-3 py-1 rounded-lg text-xs font-bold ${s.color} border border-black/5 shadow-sm">${s.label}</span></div><div class="space-y-3 mb-5"><div class="flex items-center text-xs text-gray-600 gap-2 bg-gray-50 p-2 rounded-lg"><i class="fas fa-users w-4 text-center text-gray-400"></i> ${p.team ? p.team.length : 0} שותפים</div><div class="flex items-center text-xs text-gray-600 gap-2 bg-gray-50 p-2 rounded-lg"><i class="fas fa-calendar-alt w-4 text-center text-gray-400"></i> <span dir="ltr">${p.startDate || '?'} -> ${p.endDate || '?'}</span></div></div><div class="mb-2"><div class="flex justify-between text-xs mb-1.5"><span class="text-gray-500 font-medium">התקדמות ביצוע</span><span class="font-bold text-blue-600">${progress}%</span></div><div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div class="h-full bg-blue-600 rounded-full shadow-sm" style="width: ${progress}%"></div></div></div>${risk}</div>`;
+            let risk = ''; if(p.status === 'blocked') risk = `<div class="mt-3 pt-2 border-t border-gray-50 text-red-600 bg-red-50 p-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i> חסום / סיכון גבוה</div>`; else if (progress < 50 && p.endDate && new Date(p.endDate) < new Date()) risk = `<div class="mt-3 pt-2 border-t border-gray-50 text-yellow-600 bg-yellow-50 p-1.5 rounded-lg text-[10px] font-bold flex items-center gap-2"><i class="fas fa-bolt"></i> סיכון בינוני</div>`;
+            return `<div onclick="openFullProject('${p.id}')" class="bg-white border border-gray-100 rounded-xl p-4 shadow-sm active:bg-gray-50 transition relative group"><div class="flex justify-between items-start mb-2"><div><h3 class="font-bold text-gray-800 text-base mb-0.5">${p.name}</h3><p class="text-[10px] text-gray-500 flex items-center gap-1"><i class="fas fa-map-marker-alt text-gray-300"></i> ${p.site}</p></div><span class="px-2 py-0.5 rounded text-[10px] font-bold ${s.color} border border-black/5">${s.label}</span></div><div class="mb-2"><div class="flex justify-between text-[10px] mb-1"><span class="text-gray-500 font-medium">ביצוע</span><span class="font-bold text-blue-600">${progress}%</span></div><div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="h-full bg-blue-600 rounded-full" style="width: ${progress}%"></div></div></div>${risk}</div>`;
         }
 
         function openFullProject(id) {
             currentEditingProject = projectsData.find(p => p.id === id); if (!currentEditingProject) return;
             safeText('modalProjectTitle', currentEditingProject.name);
-            safeHTML('modalProjectSub', `<i class="fas fa-building text-gray-300"></i> ${currentEditingProject.site} <span class="mx-2 text-gray-200">|</span> <i class="fas fa-briefcase text-gray-300"></i> ${currentEditingProject.department}`);
+            safeHTML('modalProjectSub', `<span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">${currentEditingProject.site}</span> <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">${currentEditingProject.department}</span>`);
             safeVal('editStatus', currentEditingProject.status); safeVal('editOwner', currentEditingProject.owner); safeVal('editStartDate', currentEditingProject.startDate || ''); safeVal('editEndDate', currentEditingProject.endDate || ''); safeVal('editDesc', currentEditingProject.objective || '');
             refreshModalUI(); switchTab('overview'); safeRemoveClass('fullProjectModal', 'hidden'); safeAddClass('fullProjectModal', 'flex');
         }
@@ -388,36 +357,27 @@
 
         function renderGanttChart() {
             const container = safeGet('ganttChartContainer'); if(!container) return;
-            if(!currentEditingProject.startDate || !currentEditingProject.endDate) { container.innerHTML = '<div class="text-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed flex flex-col items-center gap-2"><i class="far fa-calendar-times text-2xl"></i><span>נא להגדיר תאריכים ב"סקירה"</span></div>'; return; }
+            if(!currentEditingProject.startDate || !currentEditingProject.endDate) { container.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs border border-dashed rounded-lg">אין תאריכים</div>'; return; }
             const start = new Date(currentEditingProject.startDate); const end = new Date(currentEditingProject.endDate); const totalMs = end - start; const now = new Date();
             let percentPassed = 0; if(now > start) percentPassed = Math.min(100, ((now - start) / totalMs) * 100); if(totalMs <= 0) percentPassed = 0;
-            const sStr = start.toLocaleDateString('he-IL'); const eStr = end.toLocaleDateString('he-IL');
-            container.innerHTML = `<div class="relative pt-8 pb-4"><div class="flex justify-between text-xs text-gray-500 mb-2 font-mono px-1"><span><i class="far fa-play-circle"></i> ${sStr}</span><span><i class="far fa-flag"></i> ${eStr}</span></div><div class="gantt-track"><div class="absolute top-0 bottom-0 right-0 bg-blue-100 border-l border-blue-200" style="width: ${percentPassed}%"></div><div class="gantt-bar absolute top-1 bottom-1 right-1" style="width: ${currentEditingProject.progress || 0}%"><span class="absolute left-2 text-white font-bold text-xs drop-shadow-md top-1/2 -translate-y-1/2">${currentEditingProject.progress}%</span></div></div><div class="flex justify-between mt-3 text-xs text-gray-500 font-medium px-1"><div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-100 border border-blue-200 rounded-sm"></div> זמן שחלף</div><div class="flex items-center gap-2"><div class="w-3 h-3 bg-blue-600 rounded-sm"></div> התקדמות בפועל</div></div></div>`;
+            const sStr = start.toLocaleDateString('he-IL', {day:'numeric', month:'numeric'}); const eStr = end.toLocaleDateString('he-IL', {day:'numeric', month:'numeric'});
+            container.innerHTML = `<div class="relative pt-6 pb-2"><div class="flex justify-between text-[10px] text-gray-500 mb-1 font-mono px-1"><span>${sStr}</span><span>${eStr}</span></div><div class="gantt-track"><div class="absolute top-0 bottom-0 right-0 bg-blue-100 border-l border-blue-200" style="width: ${percentPassed}%"></div><div class="gantt-bar absolute top-1 bottom-1 right-1" style="width: ${currentEditingProject.progress || 0}%"><span class="absolute left-2 text-white font-bold text-[10px] top-1/2 -translate-y-1/2">${currentEditingProject.progress}%</span></div></div></div>`;
         }
 
         function renderTasksList() {
             const list = safeGet('tasksList'); if(!list) return;
             if(!currentEditingProject.tasks) currentEditingProject.tasks = [];
             const tasks = currentEditingProject.tasks;
-            if(tasks.length === 0) { list.innerHTML = '<div class="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed flex flex-col items-center gap-2"><i class="fas fa-clipboard-list text-2xl opacity-50"></i><span>אין משימות. הוסף אחת!</span></div>'; return; }
-            list.innerHTML = tasks.map((t, idx) => {
-                const assignedInitial = t.assignee ? t.assignee.charAt(0) : '?';
-                const assignedColor = t.assignee ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400';
-                return `
-                <div class="flex items-center justify-between p-3.5 rounded-xl border bg-white border-gray-200 shadow-sm hover:shadow-md transition hover:-translate-y-0.5">
-                    <div class="flex items-center gap-4">
-                        <div onclick="toggleTask(${idx})" class="w-6 h-6 rounded-full border-2 ${t.done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-transparent hover:border-blue-400'} flex items-center justify-center cursor-pointer transition transform active:scale-90"><i class="fas fa-check text-xs"></i></div>
-                        <div>
-                            <span class="${t.done ? 'line-through text-gray-400' : 'text-gray-800 font-medium'} text-sm select-none block">${t.name}</span>
-                            <span class="text-xs text-gray-400">${t.assignee || 'לא הוקצה'}</span>
-                        </div>
-                    </div>
+            if(tasks.length === 0) { list.innerHTML = '<div class="text-center py-8 text-gray-400 text-xs">אין משימות</div>'; return; }
+            list.innerHTML = tasks.map((t, idx) => `
+                <div class="flex items-center justify-between p-3 rounded-lg border bg-white border-gray-200 shadow-sm">
                     <div class="flex items-center gap-3">
-                        <div class="w-7 h-7 rounded-full ${assignedColor} flex items-center justify-center text-xs font-bold">${assignedInitial}</div>
-                        <button onclick="deleteTask(${idx})" class="text-gray-300 hover:text-red-500 px-2 transition"><i class="fas fa-times"></i></button>
+                        <div onclick="toggleTask(${idx})" class="w-5 h-5 rounded-full border ${t.done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'} flex items-center justify-center cursor-pointer"><i class="fas fa-check text-[10px] ${t.done ? '' : 'hidden'}"></i></div>
+                        <div><span class="${t.done ? 'line-through text-gray-400' : 'text-gray-800 font-medium'} text-sm block">${t.name}</span><span class="text-[10px] text-gray-400">${t.assignee || 'כללי'}</span></div>
                     </div>
+                    <button onclick="deleteTask(${idx})" class="text-gray-300 hover:text-red-500 px-2"><i class="fas fa-times"></i></button>
                 </div>
-            `}).join('');
+            `).join('');
         }
 
         function toggleTask(idx) {
@@ -470,12 +430,12 @@
         function renderActivityFeed() {
             const list = safeGet('activityFeed'); if(!list) return;
             const acts = currentEditingProject.activities || [];
-            if(acts.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">אין פעילות. היה הראשון לעדכן!</div>'; return; }
+            if(acts.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-4 text-xs">אין פעילות</div>'; return; }
             const sorted = acts.map((a, i) => ({...a, originalIndex: i})).sort((a,b) => new Date(b.date) - new Date(a.date));
             list.innerHTML = sorted.map(a => {
                 let fileHTML = '';
-                if(a.file) { if(a.file.type.startsWith('image/')) { fileHTML = `<br><img src="${a.file.data}" class="mt-3 rounded-xl border max-h-48 cursor-pointer hover:opacity-95 shadow-sm" onclick="window.open('${a.file.data}')">`; } else { fileHTML = `<br><a href="${a.file.data}" download="${a.file.name}" class="inline-flex items-center gap-3 mt-3 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm border border-blue-100 hover:bg-blue-100 transition"><i class="fas fa-file-download text-lg"></i> ${a.file.name}</a>`; } }
-                return `<div class="bg-white p-5 rounded-2xl border border-gray-100 flex gap-4 shadow-sm relative group hover:shadow-md transition"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm text-sm">${a.user.charAt(0).toUpperCase()}</div><div class="flex-1"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-900">${a.user}</span><span class="text-xs text-gray-400 font-mono" dir="ltr">${new Date(a.date).toLocaleString('he-IL')}</span></div><p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">${a.text}</p>${fileHTML}</div><button onclick="deleteActivity(${a.originalIndex})" class="absolute top-4 left-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition bg-white p-1.5 rounded-lg border border-gray-100 shadow-sm"><i class="fas fa-trash"></i></button></div>`;
+                if(a.file) { if(a.file.type.startsWith('image/')) { fileHTML = `<br><img src="${a.file.data}" class="mt-2 rounded border max-h-32 cursor-pointer" onclick="window.open('${a.file.data}')">`; } else { fileHTML = `<br><a href="${a.file.data}" download="${a.file.name}" class="inline-flex items-center gap-2 mt-2 bg-blue-50 text-blue-700 px-3 py-1 rounded text-xs border border-blue-100"><i class="fas fa-file-download"></i> ${a.file.name}</a>`; } }
+                return `<div class="bg-white p-3 rounded-lg border border-gray-100 flex gap-3 shadow-sm relative"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs flex-shrink-0">${a.user.charAt(0).toUpperCase()}</div><div class="flex-1"><div class="flex justify-between items-center mb-0.5"><span class="font-bold text-xs text-gray-900">${a.user}</span><span class="text-[10px] text-gray-400 font-mono" dir="ltr">${new Date(a.date).toLocaleString('he-IL', {hour:'2-digit', minute:'2-digit', day:'numeric', month:'numeric'})}</span></div><p class="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">${a.text}</p>${fileHTML}</div><button onclick="deleteActivity(${a.originalIndex})" class="absolute top-2 left-2 text-gray-200 hover:text-red-500 text-xs"><i class="fas fa-times"></i></button></div>`;
             }).join('');
         }
 
@@ -487,7 +447,7 @@
         }
 
         function deleteCurrentProject() {
-            if(confirm('האם אתה בטוח שברצונך למחוק את הפרויקט?')) db.collection('projects').doc(currentEditingProject.id).delete().then(() => closeFullModal());
+            if(confirm('למחוק את הפרויקט?')) db.collection('projects').doc(currentEditingProject.id).delete().then(() => closeFullModal());
         }
 
         function closeFullModal() {
@@ -503,60 +463,33 @@
 
         function createNewProject() {
             const name = safeVal('npName'); const owner = safeVal('npOwner');
-            if(!name) return alert('חובה להזין שם פרויקט'); if(!owner) return alert('חובה לבחור אחראי');
+            if(!name) return alert('חובה שם'); if(!owner) return alert('חובה אחראי');
             const team = []; document.querySelectorAll('#npTeam input:checked').forEach(cb => team.push(cb.value));
             
-            // יצירת משימות עשירות אוטומטית (5 שלבים)
             const richTasks = [
-                { name: 'תכנון ראשוני ואישור תקציב', done: false, assignee: owner },
-                { name: 'הזמנת ציוד ורכש', done: false, assignee: 'חגית' },
-                { name: 'תיאום ספקים וקבלנים', done: false, assignee: 'יוסי' },
-                { name: 'ביצוע עבודות בשטח', done: false, assignee: 'אירע' },
-                { name: 'בקרת איכות ומסירה', done: false, assignee: 'ולרי' }
+                { name: 'תכנון ותקציב', done: false, assignee: owner },
+                { name: 'רכש', done: false, assignee: 'חגית' },
+                { name: 'תיאום ספקים', done: false, assignee: 'יוסי' },
+                { name: 'ביצוע', done: false, assignee: 'אירע' },
+                { name: 'בקרת איכות', done: false, assignee: 'ולרי' }
             ];
 
             const newProj = {
-                userId: currentUser.uid,
-                name: name,
-                site: safeVal('npSite'),
-                department: safeVal('npDept'),
-                owner: owner,
-                priority: safeVal('npPriority'),
-                startDate: safeVal('npStart'),
-                endDate: safeVal('npEnd'),
-                estimatedCost: safeVal('npCost'),
-                status: 'planned',
-                team: team,
-                tasks: richTasks, // הזנת המשימות העשירות
-                activities: [],
-                progress: 0,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                userId: currentUser.uid, name: name, site: safeVal('npSite'), department: safeVal('npDept'), owner: owner,
+                priority: safeVal('npPriority'), startDate: safeVal('npStart'), endDate: safeVal('npEnd'), estimatedCost: safeVal('npCost'),
+                status: 'planned', team: team, tasks: richTasks, activities: [], progress: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             db.collection('projects').add(newProj).then(() => {
                 safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex');
             }).catch(e => alert("שגיאה: " + e.message));
         }
 
-        // --- ייצוא לאקסל (CSV) ---
         function exportToExcel() {
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM לעברית
-            csvContent += "שם הפרויקט,אתר,מחלקה,אחראי,סטטוס,תקציב,התקדמות\n";
-            projectsData.forEach(p => {
-                const row = [
-                    p.name, p.site, p.department, p.owner,
-                    STATUSES[p.status].label, p.estimatedCost, p.progress + '%'
-                ].join(",");
-                csvContent += row + "\n";
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "projects_report.csv");
-            document.body.appendChild(link);
-            link.click();
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFFשם,אתר,מחלקה,אחראי,סטטוס,תקציב,התקדמות\n";
+            projectsData.forEach(p => { csvContent += [p.name, p.site, p.department, p.owner, STATUSES[p.status].label, p.estimatedCost, p.progress + '%'].join(",") + "\n"; });
+            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", "projects.csv"); document.body.appendChild(link); link.click();
         }
 
-        // --- פתיחת מודל אנליטיקה ---
         function openAnalyticsModal() {
             let totalBudget = 0; let highRiskCount = 0; let deptBudget = {}; let projectCosts = [];
             projectsData.forEach(p => {
@@ -573,17 +506,17 @@
         function renderCharts(deptBudget, projectCosts) {
             if(analyticsCharts.budget) analyticsCharts.budget.destroy(); if(analyticsCharts.top) analyticsCharts.top.destroy();
             const ctx1 = document.getElementById('budgetChart').getContext('2d');
-            analyticsCharts.budget = new Chart(ctx1, { type: 'doughnut', data: { labels: Object.keys(deptBudget), datasets: [{ data: Object.values(deptBudget), backgroundColor: ['#3b82f6', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] } });
+            analyticsCharts.budget = new Chart(ctx1, { type: 'doughnut', data: { labels: Object.keys(deptBudget), datasets: [{ data: Object.values(deptBudget), backgroundColor: ['#3b82f6', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'] }] }, options: { maintainAspectRatio: false } });
             const top5 = projectCosts.sort((a,b) => b.cost - a.cost).slice(0, 5);
             const ctx2 = document.getElementById('topProjectsChart').getContext('2d');
-            analyticsCharts.top = new Chart(ctx2, { type: 'bar', data: { labels: top5.map(p => p.name.substring(0, 15) + '...'), datasets: [{ label: 'עלות (₪)', data: top5.map(p => p.cost), backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { scales: { y: { beginAtZero: true } } } });
+            analyticsCharts.top = new Chart(ctx2, { type: 'bar', data: { labels: top5.map(p => p.name.substring(0, 10) + '...'), datasets: [{ label: '₪', data: top5.map(p => p.cost), backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
         }
 
-        function switchView(v) { currentView = v; renderProjects(); }
+        function switchView(v) { currentView = v; updateViewButtons(v); renderProjects(); }
         function updateViewButtons(active) {
             const l = safeGet('viewBtnList'), k = safeGet('viewBtnKanban');
-            const act = "px-5 py-2 text-sm rounded-lg transition font-bold flex items-center gap-2 shadow-sm bg-white text-blue-600";
-            const inact = "px-5 py-2 text-sm rounded-lg transition font-medium flex items-center gap-2 text-slate-500 hover:bg-white hover:text-slate-700 hover:shadow-sm";
+            const act = "flex-1 md:flex-none justify-center px-4 py-2 text-xs font-bold rounded-lg transition flex items-center gap-2 bg-white text-blue-600 shadow-sm";
+            const inact = "flex-1 md:flex-none justify-center px-4 py-2 text-xs font-medium rounded-lg transition flex items-center gap-2 text-gray-500 hover:bg-white hover:text-gray-700";
             l.className = active === 'list' ? act : inact; k.className = active === 'kanban' ? act : inact;
         }
     </script>
