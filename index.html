@@ -57,20 +57,20 @@
     <div id="app" class="hidden flex-col h-full w-full">
         <header class="glass-header z-30 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-6 py-4">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-3">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <div class="flex items-center gap-3 w-full md:w-auto">
                         <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md"><i class="fas fa-layer-group text-xl"></i></div>
                         <div>
                             <h1 class="text-2xl font-bold text-gray-900 leading-none">ניהול פרויקטים</h1>
                             <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
                         </div>
                     </div>
-                    <div class="flex gap-3 items-center">
+                    <div class="flex gap-2 items-center flex-wrap justify-center md:justify-end w-full md:w-auto">
                         <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hidden sm:block"></span>
                         <div id="adminBadge" class="hidden bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded border border-red-200">מנהל מערכת</div>
-                        <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md transition"><i class="fas fa-file-excel"></i> אקסל</button>
-                        <button onclick="openAnalyticsModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md transition"><i class="fas fa-chart-pie"></i> דשבורד</button>
-                        <button onclick="openNewProjectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5"><i class="fas fa-plus"></i> פרויקט חדש</button>
+                        <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 shadow-md transition"><i class="fas fa-file-excel"></i> אקסל</button>
+                        <button onclick="openAnalyticsModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 shadow-md transition"><i class="fas fa-chart-pie"></i> דשבורד</button>
+                        <button onclick="openNewProjectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5"><i class="fas fa-plus"></i> פרויקט חדש</button>
                         <button onclick="auth.signOut()" class="text-gray-400 hover:text-red-500 p-2 transition bg-gray-50 rounded-lg hover:bg-red-50"><i class="fas fa-sign-out-alt text-lg"></i></button>
                     </div>
                 </div>
@@ -135,6 +135,11 @@
                     </div>
                     <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex-grow">
                         <h3 class="font-bold text-gray-800 text-lg mb-4 pb-2 border-b border-gray-100">עריכת פרטים</h3>
+                        
+                        <div class="grid grid-cols-2 gap-6 mb-4">
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1">שם הפרויקט</label><input type="text" id="editName" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none font-bold text-gray-700"></div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1">תקציב (₪)</label><input type="number" id="editCost" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div>
+                        </div>
                         <div class="grid grid-cols-2 gap-6">
                             <div class="space-y-4"><div><label class="block text-xs font-bold text-gray-500 mb-1">תאריך התחלה</label><input type="date" id="editStartDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div><div><label class="block text-xs font-bold text-gray-500 mb-1">תאריך סיום</label><input type="date" id="editEndDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div></div>
                             <div class="space-y-4"><div><label class="block text-xs font-bold text-gray-500 mb-1">סטטוס</label><select id="editStatus" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div><div><label class="block text-xs font-bold text-gray-500 mb-1">אחראי</label><select id="editOwner" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div></div>
@@ -188,10 +193,10 @@
         };
 
         // --- אזור הגדרות ניהול ---
-        const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; // שים פה את המייל שלך
+        const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; 
         
         // --- ספר הטלפונים הפנימי: שם -> אימייל ---
-        // ===> תמלא פה את המיילים האמיתיים של כולם <===
+        // רק מי שמופיע ברשימה הזו (או למעלה) יוכל להיכנס למערכת!
         const TEAM_DIRECTORY = {
             'ולרי': 'valery@herzliya-marina.co.il',
             'חגית': 'hagits@herzliya-marina.co.il',
@@ -243,7 +248,7 @@
             if (isLoginMode) { title.innerText = "כניסה למערכת"; btn.innerText = "התחבר"; toggleText.innerText = "אין לך חשבון? "; toggleLink.innerText = "הירשם כאן"; }
             else { title.innerText = "הרשמה למערכת"; btn.innerText = "הירשם"; toggleText.innerText = "יש לך כבר חשבון? "; toggleLink.innerText = "התחבר כאן"; }
         }
-function handleAuthAction() {
+        function handleAuthAction() {
             const e = safeVal('emailInput').toLowerCase().trim(); 
             const p = safeVal('passInput');
             
@@ -315,18 +320,16 @@ function handleAuthAction() {
         function fillDropdowns() {
             const populate = (id, list) => { const el = document.getElementById(id); if(el) el.innerHTML = list.map(i => `<option value="${i}">${i}</option>`).join(''); };
             
-            // שמות לצורך בעלים של פרויקט
             const names = Object.keys(TEAM_DIRECTORY);
             populate('npSite', SITES); populate('npDept', DEPARTMENTS); populate('npOwner', names);
             
             const editOwner = document.getElementById('editOwner'); if(editOwner) editOwner.innerHTML = names.map(m => `<option value="${m}">${m}</option>`).join('');
             const editStatus = document.getElementById('editStatus'); if(editStatus) editStatus.innerHTML = Object.keys(STATUSES).map(k => `<option value="${k}">${STATUSES[k].label}</option>`).join('');
             
-            // יצירת הצ'קבוקסים החכמים (מציגים שם, שומרים מייל)
             const teamContainer = document.getElementById('npTeam'); 
             if(teamContainer) {
                 teamContainer.innerHTML = names.map(name => {
-                    const email = TEAM_DIRECTORY[name]; // זה מה שיישמר
+                    const email = TEAM_DIRECTORY[name];
                     return `<label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border hover:bg-blue-50 transition"><input type="checkbox" value="${email}" class="rounded text-blue-600 w-4 h-4"><span class="text-xs font-bold text-gray-700">${name}</span></label>`;
                 }).join('');
             }
@@ -355,9 +358,21 @@ function handleAuthAction() {
 
         function openFullProject(id) {
             currentEditingProject = projectsData.find(p => p.id === id); if (!currentEditingProject) return;
+            
+            // --- תיקון עריכה: טעינת נתונים לשדות ---
             safeText('modalProjectTitle', currentEditingProject.name);
             safeHTML('modalProjectSub', `<i class="fas fa-building text-gray-300"></i> ${currentEditingProject.site} <span class="mx-2 text-gray-200">|</span> <i class="fas fa-briefcase text-gray-300"></i> ${currentEditingProject.department}`);
-            safeVal('editStatus', currentEditingProject.status); safeVal('editOwner', currentEditingProject.owner); safeVal('editStartDate', currentEditingProject.startDate || ''); safeVal('editEndDate', currentEditingProject.endDate || ''); safeVal('editDesc', currentEditingProject.objective || '');
+            
+            safeVal('editName', currentEditingProject.name); // שם
+            safeVal('editCost', currentEditingProject.estimatedCost); // תקציב
+            // ----------------------------------------
+
+            safeVal('editStatus', currentEditingProject.status); 
+            safeVal('editOwner', currentEditingProject.owner); 
+            safeVal('editStartDate', currentEditingProject.startDate || ''); 
+            safeVal('editEndDate', currentEditingProject.endDate || ''); 
+            safeVal('editDesc', currentEditingProject.objective || '');
+            
             refreshModalUI(); switchTab('overview'); safeRemoveClass('fullProjectModal', 'hidden'); safeAddClass('fullProjectModal', 'flex');
         }
 
@@ -381,8 +396,16 @@ function handleAuthAction() {
         }
 
         function syncData() {
+            // --- תיקון עריכה: עדכון נתונים בזמן אמת ---
+            currentEditingProject.name = safeVal('editName');          
+            currentEditingProject.estimatedCost = safeVal('editCost'); 
+            safeText('modalProjectTitle', currentEditingProject.name); // עדכון כותרת מיידי
+            // ------------------------------------------
+
             currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate');
             currentEditingProject.status = safeVal('editStatus'); currentEditingProject.owner = safeVal('editOwner');
+            currentEditingProject.objective = safeVal('editDesc');
+            
             refreshModalUI();
         }
 
@@ -468,6 +491,10 @@ function handleAuthAction() {
         }
 
         function saveFullProject() {
+            // --- תיקון עריכה: שמירת שדות חדשים ---
+            currentEditingProject.name = safeVal('editName');          
+            currentEditingProject.estimatedCost = safeVal('editCost'); 
+            // -------------------------------------
             currentEditingProject.status = safeVal('editStatus'); currentEditingProject.owner = safeVal('editOwner');
             currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate');
             currentEditingProject.objective = safeVal('editDesc');
@@ -486,18 +513,16 @@ function handleAuthAction() {
         function openNewProjectModal() {
             safeVal('npName', ''); const startInput = safeGet('npStart'); if(startInput) startInput.valueAsDate = new Date();
             safeVal('npEnd', ''); safeVal('npCost', ''); 
-            // איפוס צ'קבוקסים
             document.querySelectorAll('#npTeam input').forEach(c => c.checked = false);
             safeRemoveClass('newProjectModal', 'hidden'); safeAddClass('newProjectModal', 'flex');
-        }function createNewProject() {
+        }
+        
+        function createNewProject() {
             const name = safeVal('npName'); const owner = safeVal('npOwner');
             if(!name) return alert('חובה להזין שם פרויקט'); if(!owner) return alert('חובה לבחור אחראי');
             
-            // איסוף המיילים מהצ'קבוקסים
             const team = [];
             document.querySelectorAll('#npTeam input:checked').forEach(cb => team.push(cb.value));
-
-            // >>> כאן היה הקוד של richTasks שמחקנו <<<
 
             const newProj = {
                 userId: currentUser.uid,
@@ -511,7 +536,7 @@ function handleAuthAction() {
                 estimatedCost: safeVal('npCost'),
                 status: 'planned',
                 team: team, 
-                tasks: [], // <--- שינוי חשוב: מתחילים עם רשימת משימות ריקה
+                tasks: [],
                 activities: [],
                 progress: 0,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -569,6 +594,3 @@ function handleAuthAction() {
     </script>
 </body>
 </html>
-
-
-
