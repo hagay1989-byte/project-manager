@@ -188,22 +188,22 @@
         };
 
         // --- אזור הגדרות ניהול ---
-        const ADMIN_EMAILS = ['hagay1989@gmail.com', 'manager@example.com']; // שים פה את המייל שלך
+        const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; // שים פה את המייל שלך
         
         // --- ספר הטלפונים הפנימי: שם -> אימייל ---
         // ===> תמלא פה את המיילים האמיתיים של כולם <===
         const TEAM_DIRECTORY = {
-            'ולרי': 'valery@example.com',
-            'חגית': 'hagit@example.com',
-            'רונית': 'ronit@example.com',
-            'יפית': 'yafit@example.com',
-            'זאנה': 'zana@example.com',
-            'חגי': 'hagay1989@gmail.com',
-            'עירא': 'ira@example.com',
-            'ירדן': 'yarden@example.com',
-            'מיכאלה': 'michaela@example.com',
-            'מעיין': 'maayan@example.com',
-            'אלכס': 'alex@example.com'
+            'ולרי': 'valery@herzliya-marina.co.il',
+            'חגית': 'hagits@herzliya-marina.co.il',
+            'רונית': 'ronit@herzliya-marina.co.il',
+            'יפית': 'office@herzliya-marina.co.il',
+            'זאנה': 'zana@herzliya-marina.co.il',
+            'חגי': 'hagay@herzliya-marina.co.il',
+            'עירא': 'iralif@herzliya-marina.co.il',
+            'ירדן': 'yarden.ak@herzliya-marina.co.il',
+            'מיכאלה': 'michaela@herzliya-marina.co.il',
+            'מעיין': 'maayans@herzliya-marina.co.il',
+            'אלכס': 'alexf@herzliya-marina.co.il'
         };
         // -----------------------------
 
@@ -243,16 +243,33 @@
             if (isLoginMode) { title.innerText = "כניסה למערכת"; btn.innerText = "התחבר"; toggleText.innerText = "אין לך חשבון? "; toggleLink.innerText = "הירשם כאן"; }
             else { title.innerText = "הרשמה למערכת"; btn.innerText = "הירשם"; toggleText.innerText = "יש לך כבר חשבון? "; toggleLink.innerText = "התחבר כאן"; }
         }
-
-        function handleAuthAction() {
-            const e = safeVal('emailInput'), p = safeVal('passInput');
+function handleAuthAction() {
+            const e = safeVal('emailInput').toLowerCase().trim(); 
+            const p = safeVal('passInput');
+            
             if(!e || !p) { alert('נא למלא אימייל וסיסמה'); return; }
+
+            // --- מנגנון אבטחה: רשימת מורשים בלבד ---
+            const allowedEmails = [...ADMIN_EMAILS, ...Object.values(TEAM_DIRECTORY)].map(email => email.toLowerCase().trim());
+            
+            if (!allowedEmails.includes(e)) {
+                safeText('authError', 'גישה נדחתה: המייל אינו מופיע ברשימת המורשים. פנה למנהל.');
+                safeRemoveClass('authError', 'hidden');
+                return; 
+            }
+            // ---------------------------------------
+
             const action = isLoginMode ? auth.signInWithEmailAndPassword(e, p) : auth.createUserWithEmailAndPassword(e, p);
-            action.then(() => { safeGet('emailInput').value = ''; safeGet('passInput').value = ''; }).catch(err => {
+            
+            action.then(() => { 
+                safeGet('emailInput').value = ''; 
+                safeGet('passInput').value = ''; 
+                safeAddClass('authError', 'hidden');
+            }).catch(err => {
                 let msg = err.message;
-                if(err.code === 'auth/email-already-in-use') msg = 'המייל כבר קיים במערכת';
+                if(err.code === 'auth/email-already-in-use') msg = 'המייל כבר קיים - נסה להתחבר במקום להירשם';
                 if(err.code === 'auth/wrong-password') msg = 'סיסמה שגויה';
-                if(err.code === 'auth/user-not-found') msg = 'משתמש לא נמצא';
+                if(err.code === 'auth/user-not-found') msg = 'משתמש לא קיים - נסה להירשם';
                 if(err.code === 'auth/weak-password') msg = 'סיסמה חלשה מדי';
                 safeText('authError', msg); safeRemoveClass('authError', 'hidden');
             });
@@ -552,5 +569,6 @@
     </script>
 </body>
 </html>
+
 
 
