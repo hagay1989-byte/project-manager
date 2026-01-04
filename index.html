@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V34 - Smart Directory</title>
+    <title>Project Manager V41 - Hebrew Names Only</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,6 +13,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
     <style>
         body { font-family: 'Heebo', sans-serif; background-color: #f0f2f5; }
@@ -144,6 +146,11 @@
                             <div class="space-y-4"><div><label class="block text-xs font-bold text-gray-500 mb-1">תאריך התחלה</label><input type="date" id="editStartDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div><div><label class="block text-xs font-bold text-gray-500 mb-1">תאריך סיום</label><input type="date" id="editEndDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div></div>
                             <div class="space-y-4"><div><label class="block text-xs font-bold text-gray-500 mb-1">סטטוס</label><select id="editStatus" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div><div><label class="block text-xs font-bold text-gray-500 mb-1">אחראי</label><select id="editOwner" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div></div>
                             <div class="col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1">תיאור ומטרה</label><textarea id="editDesc" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none resize-none" rows="2"></textarea></div>
+                            
+                            <div class="col-span-2 mt-2">
+                                <label class="block text-xs font-bold text-gray-500 mb-2">צוות הפרויקט</label>
+                                <div id="viewTeamList" class="flex flex-wrap gap-2"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -192,11 +199,15 @@
             measurementId: "G-NZHPST88NC"
         };
 
+        // --- חיבור למערכת האימייל ---
+        (function() {
+            emailjs.init("lVJCS9f5i8YqFTNyK"); 
+        })();
+
         // --- אזור הגדרות ניהול ---
         const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; 
         
         // --- ספר הטלפונים הפנימי: שם -> אימייל ---
-        // רק מי שמופיע ברשימה הזו (או למעלה) יוכל להיכנס למערכת!
         const TEAM_DIRECTORY = {
             'ולרי': 'valery@herzliya-marina.co.il',
             'חגית': 'hagits@herzliya-marina.co.il',
@@ -210,7 +221,6 @@
             'מעיין': 'maayans@herzliya-marina.co.il',
             'אלכס': 'alexf@herzliya-marina.co.il'
         };
-        // -----------------------------
 
         const SITES = ['מבנה מנהלה', 'מבנה מספנה', 'חוף הים', 'שובר גלים', 'אירועים', 'רציפים'];
         const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים'];
@@ -251,21 +261,16 @@
         function handleAuthAction() {
             const e = safeVal('emailInput').toLowerCase().trim(); 
             const p = safeVal('passInput');
-            
             if(!e || !p) { alert('נא למלא אימייל וסיסמה'); return; }
 
-            // --- מנגנון אבטחה: רשימת מורשים בלבד ---
             const allowedEmails = [...ADMIN_EMAILS, ...Object.values(TEAM_DIRECTORY)].map(email => email.toLowerCase().trim());
-            
             if (!allowedEmails.includes(e)) {
                 safeText('authError', 'גישה נדחתה: המייל אינו מופיע ברשימת המורשים. פנה למנהל.');
                 safeRemoveClass('authError', 'hidden');
                 return; 
             }
-            // ---------------------------------------
 
             const action = isLoginMode ? auth.signInWithEmailAndPassword(e, p) : auth.createUserWithEmailAndPassword(e, p);
-            
             action.then(() => { 
                 safeGet('emailInput').value = ''; 
                 safeGet('passInput').value = ''; 
@@ -299,14 +304,12 @@
                 const allProjects = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 const userEmail = currentUser.email;
                 const isAdmin = ADMIN_EMAILS.includes(userEmail);
-
                 projectsData = allProjects.filter(p => {
                     if (isAdmin) return true;
                     if (p.userId === currentUser.uid) return true;
                     if (p.team && Array.isArray(p.team) && p.team.includes(userEmail)) return true;
                     return false;
                 });
-
                 projectsData.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 renderProjects();
                 
@@ -319,7 +322,6 @@
 
         function fillDropdowns() {
             const populate = (id, list) => { const el = document.getElementById(id); if(el) el.innerHTML = list.map(i => `<option value="${i}">${i}</option>`).join(''); };
-            
             const names = Object.keys(TEAM_DIRECTORY);
             populate('npSite', SITES); populate('npDept', DEPARTMENTS); populate('npOwner', names);
             
@@ -333,7 +335,6 @@
                     return `<label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border hover:bg-blue-50 transition"><input type="checkbox" value="${email}" class="rounded text-blue-600 w-4 h-4"><span class="text-xs font-bold text-gray-700">${name}</span></label>`;
                 }).join('');
             }
-
             const depFilter = document.getElementById('filterDept'); if(depFilter) { depFilter.innerHTML = '<option value="all">כל המחלקות</option>'; DEPARTMENTS.forEach(d => depFilter.innerHTML += `<option value="${d}">${d}</option>`); }
             const statFilter = document.getElementById('filterStatus'); if(statFilter) { statFilter.innerHTML = '<option value="all">כל הסטטוסים</option>'; Object.keys(STATUSES).forEach(k => statFilter.innerHTML += `<option value="${k}">${STATUSES[k].label}</option>`); }
         }
@@ -358,21 +359,15 @@
 
         function openFullProject(id) {
             currentEditingProject = projectsData.find(p => p.id === id); if (!currentEditingProject) return;
-            
-            // --- תיקון עריכה: טעינת נתונים לשדות ---
             safeText('modalProjectTitle', currentEditingProject.name);
             safeHTML('modalProjectSub', `<i class="fas fa-building text-gray-300"></i> ${currentEditingProject.site} <span class="mx-2 text-gray-200">|</span> <i class="fas fa-briefcase text-gray-300"></i> ${currentEditingProject.department}`);
-            
-            safeVal('editName', currentEditingProject.name); // שם
-            safeVal('editCost', currentEditingProject.estimatedCost); // תקציב
-            // ----------------------------------------
-
+            safeVal('editName', currentEditingProject.name); 
+            safeVal('editCost', currentEditingProject.estimatedCost); 
             safeVal('editStatus', currentEditingProject.status); 
             safeVal('editOwner', currentEditingProject.owner); 
             safeVal('editStartDate', currentEditingProject.startDate || ''); 
             safeVal('editEndDate', currentEditingProject.endDate || ''); 
             safeVal('editDesc', currentEditingProject.objective || '');
-            
             refreshModalUI(); switchTab('overview'); safeRemoveClass('fullProjectModal', 'hidden'); safeAddClass('fullProjectModal', 'flex');
         }
 
@@ -383,6 +378,53 @@
             safeText('statProgress', progress + '%'); const pBar = safeGet('statProgressBar'); if(pBar) pBar.style.width = progress + '%';
             safeText('viewStartDate', currentEditingProject.startDate || '-'); safeText('viewEndDate', currentEditingProject.endDate || '-');
             let risk = 'נמוכה'; if (currentEditingProject.status === 'blocked') risk = 'גבוהה'; safeText('statRisk', risk);
+            
+            // --- תצוגת שותפים מתוקנת (V41 - FORCE HEBREW) ---
+            const teamContainer = safeGet('viewTeamList');
+            if (teamContainer) {
+                const team = currentEditingProject.team || [];
+                if (team.length === 0) {
+                    teamContainer.innerHTML = '<span class="text-gray-400 text-sm">אין שותפים נוספים</span>';
+                } else {
+                    // מילון עזר לאימיילים שלא נמצאו ברשימה הרשמית אבל אנחנו יודעים מי הם
+                    const hebrewMapping = {
+                        'alex': 'אלכס', 'alexf': 'אלכס',
+                        'hagay': 'חגי',
+                        'valery': 'ולרי',
+                        'ronit': 'רונית',
+                        'hagits': 'חגית',
+                        'hagit': 'חגית',
+                        'maayans': 'מעיין',
+                        'maayan': 'מעיין',
+                        'yarden': 'ירדן',
+                        'michaela': 'מיכאלה',
+                        'iralif': 'עירא',
+                        'ira': 'עירא',
+                        'zana': 'זאנה',
+                        'office': 'יפית',
+                        'yafit': 'יפית'
+                    };
+
+                    const names = team.map(email => {
+                        // 1. נסה למצוא את השם ברשימה הרשמית
+                        const foundName = Object.keys(TEAM_DIRECTORY).find(key => TEAM_DIRECTORY[key].toLowerCase().trim() === email.toLowerCase().trim());
+                        if (foundName) return foundName;
+
+                        // 2. אם לא מצא, קח את התחילית (למשל alex)
+                        const shortName = email.split('@')[0].toLowerCase();
+                        
+                        // 3. בדוק אם התחילית קיימת במילון המיפוי הידני
+                        if (hebrewMapping[shortName]) return hebrewMapping[shortName];
+
+                        // 4. ברירת מחדל אחרונה (רק אם ממש אין ברירה)
+                        return shortName;
+                    });
+                    
+                    teamContainer.innerHTML = names.map(n => `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold shadow-sm">${n}</span>`).join('');
+                }
+            }
+            // --------------------------
+
             const activeTab = document.querySelector('.tab-content.active');
             if (activeTab && activeTab.id === 'content-kanban') renderTasksList();
             if (activeTab && activeTab.id === 'content-activity') renderActivityFeed();
@@ -396,16 +438,12 @@
         }
 
         function syncData() {
-            // --- תיקון עריכה: עדכון נתונים בזמן אמת ---
-            currentEditingProject.name = safeVal('editName');          
+            currentEditingProject.name = safeVal('editName');           
             currentEditingProject.estimatedCost = safeVal('editCost'); 
-            safeText('modalProjectTitle', currentEditingProject.name); // עדכון כותרת מיידי
-            // ------------------------------------------
-
+            safeText('modalProjectTitle', currentEditingProject.name); 
             currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate');
             currentEditingProject.status = safeVal('editStatus'); currentEditingProject.owner = safeVal('editOwner');
             currentEditingProject.objective = safeVal('editDesc');
-            
             refreshModalUI();
         }
 
@@ -490,15 +528,46 @@
             }).join('');
         }
 
+        // --- שמירה חכמה עם בדיקת סיום פרויקט ---
         function saveFullProject() {
-            // --- תיקון עריכה: שמירת שדות חדשים ---
-            currentEditingProject.name = safeVal('editName');          
+            const oldStatus = currentEditingProject.status;
+            const newStatus = safeVal('editStatus');
+            
+            currentEditingProject.name = safeVal('editName');            
             currentEditingProject.estimatedCost = safeVal('editCost'); 
-            // -------------------------------------
-            currentEditingProject.status = safeVal('editStatus'); currentEditingProject.owner = safeVal('editOwner');
-            currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate');
+            currentEditingProject.status = newStatus; 
+            currentEditingProject.owner = safeVal('editOwner');
+            currentEditingProject.startDate = safeVal('editStartDate'); 
+            currentEditingProject.endDate = safeVal('editEndDate');
             currentEditingProject.objective = safeVal('editDesc');
-            db.collection('projects').doc(currentEditingProject.id).update(currentEditingProject).then(() => closeFullModal());
+
+            db.collection('projects').doc(currentEditingProject.id).update(currentEditingProject).then(() => {
+                
+                // בדיקה: האם הפרויקט הסתיים?
+                if (oldStatus !== 'done' && newStatus === 'done') {
+                    const team = currentEditingProject.team || [];
+                    if (team.length > 0) {
+                        let emailPromises = [];
+                        const mailTitle = `ברכות! הפרויקט הסתיים - ${currentEditingProject.name}`;
+                        const mailBody = `הפרויקט סומן כ"הושלם" במערכת! תודה רבה על העבודה וההשקעה.`;
+
+                        team.forEach(memberEmail => {
+                            const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", {
+                                to_email: memberEmail,
+                                email_title: mailTitle,
+                                email_message: mailBody,
+                                project_name: currentEditingProject.name,
+                                owner_name: currentEditingProject.owner,
+                                department: currentEditingProject.department
+                            });
+                            emailPromises.push(p);
+                        });
+                        alert('הפרויקט עודכן ל"הושלם" ומיילי סיום נשלחו לצוות! 🏁');
+                    }
+                }
+                
+                closeFullModal();
+            }).catch(e => alert("שגיאה בשמירה: " + e.message));
         }
 
         function deleteCurrentProject() {
@@ -524,6 +593,10 @@
             const team = [];
             document.querySelectorAll('#npTeam input:checked').forEach(cb => team.push(cb.value));
 
+            if (team.length === 0) {
+                if(!confirm('לא נבחרו שותפים לפרויקט. לא יישלחו מיילים. האם להמשיך?')) return;
+            }
+
             const newProj = {
                 userId: currentUser.uid,
                 name: name,
@@ -543,7 +616,39 @@
             };
             
             db.collection('projects').add(newProj).then(() => {
-                safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex');
+                
+                if (team && team.length > 0) {
+                    let emailPromises = [];
+                    const mailTitle = `עדכון: פרויקט חדש - ${name}`;
+                    const mailBody = `שמחים לעדכן שנפתח פרויקט חדש במערכת.`;
+
+                    team.forEach(memberEmail => {
+                        const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", {
+                            to_email: memberEmail,
+                            email_title: mailTitle,
+                            email_message: mailBody,
+                            project_name: name,
+                            owner_name: owner,
+                            department: safeVal('npDept')
+                        });
+                        emailPromises.push(p);
+                    });
+
+                    Promise.all(emailPromises)
+                        .then(() => {
+                            alert('הפרויקט נוצר והמיילים נשלחו בהצלחה! 📧');
+                            safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex');
+                        })
+                        .catch((err) => {
+                            console.error(err);
+                            alert('שגיאה בשליחת המיילים: ' + JSON.stringify(err));
+                            safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex');
+                        });
+                } else {
+                    alert('הפרויקט נוצר (ללא שליחת מייל).');
+                    safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex');
+                }
+
             }).catch(e => alert("שגיאה: " + e.message));
         }
 
@@ -594,4 +699,3 @@
     </script>
 </body>
 </html>
-
