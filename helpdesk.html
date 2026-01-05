@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Desk V47 - WhatsApp</title>
+    <title>Service Desk V49 - Dashboard & Budget</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -76,6 +76,10 @@
                     <div class="flex gap-2 items-center flex-wrap justify-center md:justify-end w-full md:w-auto">
                         <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hidden sm:block"></span>
                         
+                        <button onclick="openDashboard()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
+                            <i class="fas fa-chart-pie"></i> דשבורד
+                        </button>
+
                         <button onclick="exportTicketsToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition">
                             <i class="fas fa-file-excel"></i> ייצוא לאקסל
                         </button>
@@ -106,6 +110,49 @@
         <main id="mainContent" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8 overflow-y-auto custom-scrollbar">
             <div id="ticketsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </main>
+    </div>
+
+    <div id="dashboardModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
+            <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-chart-line text-purple-600 ml-2"></i> תמונת מצב תפעולית</h2>
+                <button onclick="closeDashboard()" class="text-gray-400 hover:text-gray-600 p-2 transition"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-8 bg-gray-50 custom-scrollbar">
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="text-gray-400 text-xs font-bold uppercase mb-2">תקציב/עלות כוללת</div>
+                        <div id="dashTotalBudget" class="text-3xl font-black text-gray-800">₪0</div>
+                        <div class="text-green-500 text-xs font-bold mt-1"><i class="fas fa-coins"></i> מצטבר לכל התקלות</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="text-gray-400 text-xs font-bold uppercase mb-2">סה"כ קריאות</div>
+                        <div id="dashTotalTickets" class="text-3xl font-black text-blue-600">0</div>
+                        <div class="text-gray-400 text-xs mt-1">פתוחות וסגורות</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="text-gray-400 text-xs font-bold uppercase mb-2">קריאות פתוחות</div>
+                        <div id="dashOpenTickets" class="text-3xl font-black text-red-500">0</div>
+                        <div class="text-red-400 text-xs font-bold mt-1"><i class="fas fa-fire"></i> דורש טיפול</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-700 mb-4 border-b pb-2">עלויות לפי מחלקה (₪)</h3>
+                        <canvas id="costChart"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-700 mb-4 border-b pb-2">סטטוס קריאות</h3>
+                        <div class="h-64 flex justify-center">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
 
     <div id="fullTicketModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-40 p-4 backdrop-blur-sm">
@@ -142,12 +189,23 @@
             <div class="flex-1 overflow-y-auto bg-gray-50 custom-scrollbar relative p-6">
                 
                 <div id="content-ticket-details" class="tab-content active space-y-6">
-                    <div class="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm ring-1 ring-blue-50">
-                        <h3 class="font-bold text-gray-800 mb-2 text-sm flex items-center gap-2">
-                            <i class="fas fa-check-double text-blue-500"></i> פירוט ביצוע / סיכום טיפול
-                        </h3>
-                        <textarea id="ticketResolution" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-blue-400 transition" rows="3" placeholder="תאר מה בוצע בתקלה... (חובה לפני סגירה)"></textarea>
-                        <div id="closedByBadge" class="hidden mt-2 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded inline-block border border-green-100"></div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="md:col-span-2 bg-white p-5 rounded-2xl border border-blue-100 shadow-sm ring-1 ring-blue-50">
+                            <h3 class="font-bold text-gray-800 mb-2 text-sm flex items-center gap-2">
+                                <i class="fas fa-check-double text-blue-500"></i> פירוט ביצוע / סיכום טיפול
+                            </h3>
+                            <textarea id="ticketResolution" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-blue-400 transition" rows="3" placeholder="תאר מה בוצע בתקלה... (חובה לפני סגירה)"></textarea>
+                            <div id="closedByBadge" class="hidden mt-2 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded inline-block border border-green-100"></div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-green-100 shadow-sm ring-1 ring-green-50">
+                            <h3 class="font-bold text-gray-800 mb-2 text-sm flex items-center gap-2">
+                                <i class="fas fa-shekel-sign text-green-600"></i> עלות ביצוע (₪)
+                            </h3>
+                            <input type="number" id="ticketBudget" class="w-full text-2xl font-bold text-gray-800 bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:border-green-400 transition" placeholder="0">
+                            <div class="text-xs text-gray-400 mt-1">עלות חלקים/עבודה</div>
+                        </div>
                     </div>
 
                     <div id="modalMainImageContainer" class="hidden relative bg-gray-200 h-64 w-full rounded-2xl overflow-hidden shadow-sm border border-gray-200 group">
@@ -169,8 +227,11 @@
                                 <span class="text-gray-400 block text-xs">מדווח:</span>
                                 <div class="flex items-center gap-2">
                                     <span id="modalTicketReporter" class="font-bold text-gray-700"></span>
-                                    <button id="btnWhatsAppReporter" onclick="sendWhatsAppUpdate()" class="text-green-500 hover:text-green-600 hidden" title="שלח עדכון בוואטסאפ">
+                                    <button id="btnWhatsAppReporter" onclick="sendWhatsAppUpdate()" class="text-green-500 hover:text-green-600 hidden transition transform hover:scale-110" title="שלח עדכון בוואטסאפ">
                                         <i class="fab fa-whatsapp text-lg"></i>
+                                    </button>
+                                    <button id="btnEmailReporter" onclick="sendEmailUpdate()" class="text-blue-500 hover:text-blue-600 transition transform hover:scale-110" title="שלח מייל ידני למדווח">
+                                        <i class="far fa-envelope text-lg"></i>
                                     </button>
                                 </div>
                             </div>
@@ -257,6 +318,8 @@
                             <option value="critical">🔴 בהולה</option>
                         </select>
                     </div>
+
+                    <div class="col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">תקציב/עלות משוערת (₪)</label><input type="number" id="ntBudget" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-red-400 transition" placeholder="0"></div>
                     
                     <div class="col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">תיאור מפורט *</label><textarea id="ntDesc" class="w-full border border-gray-200 rounded-xl p-3 outline-none resize-none focus:border-red-400 transition" rows="3" placeholder="תאר את הבעיה..."></textarea></div>
                     <div class="col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">שיוך למטפל (אופציונלי)</label><select id="ntAssignee" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-red-400 transition"><option value="">-- בחר מטפל --</option></select></div>
@@ -281,15 +344,7 @@
         (function() { emailjs.init("lVJCS9f5i8YqFTNyK"); })();
 
         const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; 
-        
-        // --- PHONE DIRECTORY (NEW V47) ---
-        // Format: 'email': '9725XXXXXXXX' (International Format)
-        const PHONE_DIRECTORY = {
-            'hagay1989@gmail.com': '972549236299',
-            'hagay@herzliya-marina.co.il': '972549236299',
-            // Add more users here: 'yossi@...': '972500000000'
-        };
-
+        const PHONE_DIRECTORY = { 'hagay1989@gmail.com': '972549236299', 'hagay@herzliya-marina.co.il': '972549236299' };
         const TEAM_DIRECTORY = {
             'ולרי': 'valery@herzliya-marina.co.il', 'חגית': 'hagits@herzliya-marina.co.il', 'רונית': 'ronit@herzliya-marina.co.il', 'יפית': 'office@herzliya-marina.co.il', 'זאנה': 'zana@herzliya-marina.co.il', 'חגי': 'hagay@herzliya-marina.co.il', 'עירא': 'iralif@herzliya-marina.co.il', 'ירדן': 'yarden.ak@herzliya-marina.co.il', 'מיכאלה': 'michaela@herzliya-marina.co.il', 'מעיין': 'maayans@herzliya-marina.co.il', 'אלכס': 'alexf@herzliya-marina.co.il',
             'אלי קירור': 'eli@ac-cool.co.il', 'יוסי חשמל': 'yossi@electric.com'
@@ -334,6 +389,7 @@
         let selectedFile = null;
         let newTicketImageBase64 = null;
         let isLoginMode = true;
+        let dashboardCharts = {};
 
         // AUTH
         function toggleAuthMode() {
@@ -430,10 +486,97 @@
             }
         }
 
+        // ================= DASHBOARD & CHARTS (V49) =================
+        function openDashboard() {
+            // Stats Calculation
+            let totalCost = 0;
+            let totalTickets = ticketsData.length;
+            let openTickets = 0;
+            let deptCost = {};
+            let statusCount = {};
+
+            ticketsData.forEach(t => {
+                const cost = Number(t.budget) || 0;
+                totalCost += cost;
+
+                if (t.status !== 'done') openTickets++;
+
+                const dept = t.department || 'כללי';
+                if (!deptCost[dept]) deptCost[dept] = 0;
+                deptCost[dept] += cost;
+
+                const status = t.status || 'new';
+                if (!statusCount[status]) statusCount[status] = 0;
+                statusCount[status]++;
+            });
+
+            // Update DOM
+            safeText('dashTotalBudget', '₪' + totalCost.toLocaleString());
+            safeText('dashTotalTickets', totalTickets);
+            safeText('dashOpenTickets', openTickets);
+
+            // Render Charts
+            renderCharts(deptCost, statusCount);
+
+            safeRemoveClass('dashboardModal', 'hidden');
+            safeAddClass('dashboardModal', 'flex');
+        }
+
+        function closeDashboard() {
+            safeRemoveClass('dashboardModal', 'flex');
+            safeAddClass('dashboardModal', 'hidden');
+        }
+
+        function renderCharts(deptData, statusData) {
+            // Clear existing
+            if (dashboardCharts.cost) dashboardCharts.cost.destroy();
+            if (dashboardCharts.status) dashboardCharts.status.destroy();
+
+            // Cost Chart (Bar)
+            const ctxCost = document.getElementById('costChart').getContext('2d');
+            dashboardCharts.cost = new Chart(ctxCost, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(deptData),
+                    datasets: [{
+                        label: 'עלות (₪)',
+                        data: Object.values(deptData),
+                        backgroundColor: '#8b5cf6',
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+
+            // Status Chart (Doughnut)
+            const statusLabels = Object.keys(statusData).map(k => TICKET_STATUSES[k]?.label || k);
+            const statusValues = Object.values(statusData);
+            const statusColors = Object.keys(statusData).map(k => {
+                // Mapping colors based on status
+                if(k === 'done') return '#10b981'; // green
+                if(k === 'new') return '#ef4444'; // red
+                return '#f59e0b'; // orange/yellow
+            });
+
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            dashboardCharts.status = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: statusValues,
+                        backgroundColor: statusColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, cutout: '70%' }
+            });
+        }
+
         // ================= EXCEL EXPORT =================
         function exportTicketsToExcel() {
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-            csvContent += "מזהה,נושא,מיקום,מחלקה,דחיפות,סטטוס,מדווח,מטפל,תאריך פתיחה,תאריך סגירה,נסגר ע\"י,סיכום טיפול\n";
+            csvContent += "מזהה,נושא,מיקום,מחלקה,תקציב,דחיפות,סטטוס,מדווח,מטפל,תאריך פתיחה,תאריך סגירה,נסגר ע\"י,סיכום טיפול\n";
             ticketsData.forEach(t => {
                 const created = t.createdAt ? new Date(t.createdAt.seconds * 1000).toLocaleString('he-IL') : '';
                 const closed = t.closedAt ? new Date(t.closedAt).toLocaleString('he-IL') : '';
@@ -444,7 +587,9 @@
                 const reporter = getHebrewName(t.reporter);
                 const safeDesc = (t.title || '').replace(/,/g, " ").replace(/\n/g, " ");
                 const safeRes = (t.resolution || '').replace(/,/g, " ").replace(/\n/g, " ");
-                const row = [t.id, safeDesc, t.site, t.department || '', urgency, status, reporter, assignee, created, closed, closedBy, safeRes].join(",");
+                const budget = t.budget || 0;
+
+                const row = [t.id, safeDesc, t.site, t.department || '', budget, urgency, status, reporter, assignee, created, closed, closedBy, safeRes].join(",");
                 csvContent += row + "\n";
             });
             const encodedUri = encodeURI(csvContent);
@@ -457,7 +602,7 @@
 
         // ================= SERVICE DESK LOGIC =================
         function openNewTicketModal() {
-            safeVal('ntTitle', ''); safeVal('ntDesc', ''); safeVal('ntAssignee', ''); safeVal('ntUrgency', 'normal');
+            safeVal('ntTitle', ''); safeVal('ntDesc', ''); safeVal('ntAssignee', ''); safeVal('ntUrgency', 'normal'); safeVal('ntBudget', '');
             safeVal('ntImageInput', ''); 
             safeAddClass('imagePreviewContainer', 'hidden'); safeRemoveClass('uploadPlaceholder', 'hidden');
             newTicketImageBase64 = null;
@@ -487,6 +632,7 @@
             const title = safeVal('ntTitle'); const site = safeVal('ntSite'); const desc = safeVal('ntDesc');
             const assigneeName = safeVal('ntAssignee'); const urgency = safeVal('ntUrgency');
             const dept = safeVal('ntDept');
+            const budget = safeVal('ntBudget');
             
             if(!title) return alert('חובה להזין נושא לתקלה');
             if(!desc) return alert('חובה להזין תיאור מפורט');
@@ -495,6 +641,7 @@
 
             const newTicket = {
                 title: title, site: site, department: dept, urgency: urgency, description: desc,
+                budget: budget, // New Field
                 status: assigneeEmail ? 'assigned' : 'new', 
                 reporter: currentUser.email, assignee: assigneeEmail,
                 image: newTicketImageBase64, 
@@ -630,6 +777,7 @@
 
             safeText('modalTicketDesc', t.description);
             safeVal('ticketResolution', t.resolution || ''); 
+            safeVal('ticketBudget', t.budget || ''); // Set budget
             
             if(t.closedBy) {
                 const closerName = getHebrewName(t.closedBy);
@@ -672,7 +820,6 @@
             renderActivityFeed();
         }
 
-        // --- WHATSAPP UPDATE LOGIC (NEW V47) ---
         function sendWhatsAppUpdate() {
             if (!currentEditingTicket) return;
             const phone = PHONE_DIRECTORY[currentEditingTicket.reporter];
@@ -697,13 +844,23 @@
             window.open(url, '_blank');
         }
 
+        function sendEmailUpdate() {
+            if (!currentEditingTicket) return;
+            const email = currentEditingTicket.reporter;
+            const subject = `עדכון לגבי תקלה: ${currentEditingTicket.title}`;
+            const body = `שלום,\n\nהתקלה במיקום: ${currentEditingTicket.site} עודכנה.\nסטטוס נוכחי: ${TICKET_STATUSES[currentEditingTicket.status].label}\n\nבברכה,\nמוקד התקלות`;
+            window.open(`mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+        }
+
         function saveTicketChanges() {
             const newStatus = safeVal('editTicketStatus');
             const resolution = safeVal('ticketResolution');
+            const budget = safeVal('ticketBudget'); // Capture budget
             
             const updateData = {
                 status: newStatus,
-                resolution: resolution
+                resolution: resolution,
+                budget: budget
             };
 
             if (newStatus === 'done' && currentEditingTicket.status !== 'done') {
