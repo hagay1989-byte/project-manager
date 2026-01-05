@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager - Restored Stable</title>
+    <title>Project Manager V57 - Full Suite</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -20,7 +20,7 @@
         
         .glass-header { background: #ffffff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
         
-        /* Project Card Style from Image */
+        /* Project Card */
         .project-card { 
             background: white; 
             border-radius: 12px; 
@@ -29,9 +29,9 @@
             cursor: pointer; 
             border: 1px solid #f1f5f9;
         }
-        .project-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .project-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #3b82f6; }
 
-        /* Tabs Style from Image */
+        /* Tabs */
         .nav-tab {
             padding: 12px 24px;
             font-weight: 600;
@@ -78,6 +78,11 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono hidden sm:block"></span>
+                    
+                    <button onclick="openDashboard()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
+                        <i class="fas fa-chart-pie"></i> דשבורד ניהולי
+                    </button>
+
                     <button onclick="openNewProjectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2"><i class="fas fa-plus"></i> פרויקט חדש</button>
                     <button onclick="auth.signOut()" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-sign-out-alt text-xl"></i></button>
                 </div>
@@ -89,17 +94,52 @@
         </main>
     </div>
 
+    <div id="dashboardModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
+            <div class="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-chart-line text-purple-600 ml-2"></i> תמונת מצב פרויקטים</h2>
+                <button onclick="closeDashboard()" class="text-gray-400 hover:text-gray-600 p-2 transition"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-8 bg-gray-50 custom-scrollbar">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="text-gray-400 text-xs font-bold uppercase mb-2">תקציב כולל</div>
+                        <div id="dashTotalBudget" class="text-3xl font-black text-gray-800">₪0</div>
+                        <div class="text-green-500 text-xs font-bold mt-1"><i class="fas fa-coins"></i> סך הכל מתוכנן</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="text-gray-400 text-xs font-bold uppercase mb-2">סה"כ פרויקטים</div>
+                        <div id="dashTotalProjects" class="text-3xl font-black text-blue-600">0</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="text-gray-400 text-xs font-bold uppercase mb-2">בסטטוס פעיל</div>
+                        <div id="dashActiveProjects" class="text-3xl font-black text-green-500">0</div>
+                        <div class="text-green-400 text-xs font-bold mt-1">בתהליך עבודה</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-700 mb-4 border-b pb-2">תקציב לפי מחלקה (₪)</h3>
+                        <canvas id="budgetChart"></canvas>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-700 mb-4 border-b pb-2">סטטוס פרויקטים</h3>
+                        <div class="h-64 flex justify-center"><canvas id="statusChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="projectModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-modal">
             
             <div class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
-                
                 <div class="flex items-center gap-3">
                     <button onclick="closeProjectModal()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fas fa-times text-xl"></i></button>
                     <button onclick="saveProject()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2"><i class="fas fa-save"></i> שמור</button>
                     <button onclick="deleteProject()" class="text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2"><i class="fas fa-trash"></i> מחק</button>
                 </div>
-
                 <div class="text-left">
                     <h2 id="mTitle" class="text-2xl font-black text-gray-800 tracking-tight"></h2>
                     <div class="flex items-center justify-end gap-2 mt-1 text-sm text-gray-500">
@@ -118,28 +158,17 @@
             <div class="flex-1 overflow-y-auto bg-gray-50 custom-scrollbar">
                 
                 <div id="content-overview" class="tab-content active">
-                    
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                             <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fas fa-shield-alt"></i></div>
                             <div class="text-left">
                                 <div class="text-xs font-bold text-gray-400 uppercase mb-1">רמת סיכון</div>
-                                <select id="mRisk" class="font-black text-lg bg-transparent outline-none text-right w-full" dir="rtl">
-                                    <option value="low">נמוכה</option>
-                                    <option value="medium">בינונית</option>
-                                    <option value="high">גבוהה</option>
-                                </select>
+                                <select id="mRisk" class="font-black text-lg bg-transparent outline-none text-right w-full" dir="rtl"><option value="low">נמוכה</option><option value="medium">בינונית</option><option value="high">גבוהה</option></select>
                             </div>
                         </div>
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                            <div class="flex justify-between items-center mb-2 border-b border-gray-50 pb-2">
-                                <span class="font-mono font-bold text-gray-700" id="dispStart"></span>
-                                <span class="text-xs text-gray-400 font-bold uppercase">התחלה:</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="font-mono font-bold text-gray-700" id="dispEnd"></span>
-                                <span class="text-xs text-gray-400 font-bold uppercase">יעד:</span>
-                            </div>
+                            <div class="flex justify-between items-center mb-2 border-b border-gray-50 pb-2"><span class="font-mono font-bold text-gray-700" id="dispStart"></span><span class="text-xs text-gray-400 font-bold uppercase">התחלה:</span></div>
+                            <div class="flex justify-between items-center"><span class="font-mono font-bold text-gray-700" id="dispEnd"></span><span class="text-xs text-gray-400 font-bold uppercase">יעד:</span></div>
                         </div>
                         <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                             <div class="text-3xl font-black text-blue-600" id="dispProgress">0%</div>
@@ -152,38 +181,20 @@
 
                     <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
                         <h3 class="font-bold text-gray-800 text-lg mb-6 text-right border-b pb-3">עריכת פרטים</h3>
-                        
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                             <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">שם הפרויקט</label><input id="mNameInput" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
                             <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תקציב (₪)</label><input type="number" id="mBudget" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
                         </div>
-
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                             <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך התחלה</label><input type="date" id="mStart" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"></div>
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">סטטוס</label>
-                                <select id="mStatus" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition">
-                                    <option value="planned">מתוכנן</option>
-                                    <option value="planned">planned</option> <option value="בתהליך">בתהליך</option>
-                                    <option value="הושלם">הושלם</option>
-                                    <option value="עצור">עצור</option>
-                                </select>
-                            </div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">סטטוס</label><select id="mStatus" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"><option value="planned">מתוכנן</option><option value="בתהליך">בתהליך</option><option value="הושלם">הושלם</option><option value="עצור">עצור</option></select></div>
                         </div>
-
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                             <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך סיום</label><input type="date" id="mEnd" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"></div>
                             <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">אחראי</label><input id="mManager" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
                         </div>
-
-                        <div class="mb-4">
-                            <label class="block text-xs font-bold text-gray-500 mb-1 text-right">תיאור ומטרה</label>
-                            <textarea id="mDesc" rows="3" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></textarea>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1 text-right">צוות הפרויקט</label>
-                            <input id="mTeam" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition" placeholder="למשל: רונית, חגי, ירדן">
-                        </div>
+                        <div class="mb-4"><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תיאור ומטרה</label><textarea id="mDesc" rows="3" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></textarea></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">צוות הפרויקט</label><input id="mTeam" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition" placeholder="למשל: רונית, חגי, ירדן"></div>
                     </div>
                 </div>
 
@@ -263,6 +274,7 @@
         let projectsData = [];
         let currentProject = null;
         let currentUser = null;
+        let dashCharts = {};
 
         // AUTH
         auth.onAuthStateChanged(user => {
@@ -311,7 +323,6 @@
             if(projectsData.length === 0) { container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400">אין פרויקטים</div>`; return; }
             
             container.innerHTML = projectsData.map(p => {
-                // Ensure default values to prevent undefined errors
                 const name = p.name || 'ללא שם';
                 const status = p.status || 'planned';
                 const dept = p.department || 'כללי';
@@ -342,24 +353,76 @@
             }).join('');
         }
 
+        // DASHBOARD
+        function openDashboard() {
+            let totalBudget = 0;
+            let activeCount = 0;
+            let deptBudget = {};
+            let statusCount = {};
+
+            projectsData.forEach(p => {
+                const b = parseInt(p.budget || 0);
+                totalBudget += b;
+                
+                const s = p.status || 'other';
+                if(s === 'בתהליך') activeCount++;
+                statusCount[s] = (statusCount[s] || 0) + 1;
+
+                const d = p.department || 'כללי';
+                deptBudget[d] = (deptBudget[d] || 0) + b;
+            });
+
+            document.getElementById('dashTotalBudget').innerText = '₪' + totalBudget.toLocaleString();
+            document.getElementById('dashTotalProjects').innerText = projectsData.length;
+            document.getElementById('dashActiveProjects').innerText = activeCount;
+
+            // Budget Chart
+            if(dashCharts.budget) dashCharts.budget.destroy();
+            const ctx1 = document.getElementById('budgetChart').getContext('2d');
+            dashCharts.budget = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(deptBudget),
+                    datasets: [{ label: 'תקציב', data: Object.values(deptBudget), backgroundColor: '#8b5cf6', borderRadius: 6 }]
+                },
+                options: { responsive: true }
+            });
+
+            // Status Chart
+            if(dashCharts.status) dashCharts.status.destroy();
+            const ctx2 = document.getElementById('statusChart').getContext('2d');
+            dashCharts.status = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCount),
+                    datasets: [{ data: Object.values(statusCount), backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f59e0b'] }]
+                },
+                options: { responsive: true, cutout: '70%' }
+            });
+
+            document.getElementById('dashboardModal').classList.remove('hidden');
+            document.getElementById('dashboardModal').classList.add('flex');
+        }
+
+        function closeDashboard() {
+            document.getElementById('dashboardModal').classList.add('hidden');
+            document.getElementById('dashboardModal').classList.remove('flex');
+        }
+
         // MODAL LOGIC
         function openProjectModal(id) {
             const p = projectsData.find(x => x.id === id);
             if(!p) return;
             currentProject = p;
 
-            // Header
             document.getElementById('mTitle').innerText = p.name;
             document.getElementById('mDept').innerText = p.department || 'כללי';
-
-            // Cards
             document.getElementById('mRisk').value = p.risk || 'low';
             document.getElementById('mProgress').value = p.progress || 0;
             document.getElementById('dispProgress').innerText = (p.progress || 0) + '%';
             document.getElementById('dispStart').innerText = p.startDate || '--';
             document.getElementById('dispEnd').innerText = p.endDate || '--';
 
-            // Form
             document.getElementById('mNameInput').value = p.name || '';
             document.getElementById('mBudget').value = p.budget || '';
             document.getElementById('mStart').value = p.startDate || '';
@@ -389,7 +452,6 @@
         }
 
         function renderLists() {
-            // Tasks
             const tasks = currentProject.tasks || [];
             document.getElementById('tasksList').innerHTML = tasks.map((t, i) => `
                 <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-1">
@@ -400,7 +462,6 @@
                     <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})" class="cursor-pointer">
                 </div>`).join('');
 
-            // Milestones
             const ms = currentProject.milestones || [];
             document.getElementById('milestonesList').innerHTML = ms.map(m => `
                 <div class="flex justify-between items-center border-b border-gray-50 pb-2">
@@ -408,7 +469,6 @@
                     <div class="font-bold text-gray-700 text-sm">${m.title}</div>
                 </div>`).join('');
 
-            // Activity
             const acts = currentProject.activity || [];
             const sortedActs = [...acts].sort((a,b) => new Date(b.date) - new Date(a.date));
             document.getElementById('activityList').innerHTML = sortedActs.map(a => `
@@ -438,7 +498,7 @@
             };
             db.collection('projects').doc(currentProject.id).update(data).then(() => {
                 alert('השינויים נשמרו בהצלחה!');
-                closeProjectModal(); // Close to refresh view properly
+                closeProjectModal();
             });
         }
 
@@ -448,7 +508,6 @@
             }
         }
 
-        // Sub-items logic
         function addTask() {
             const txt = document.getElementById('newTaskInput').value;
             if(!txt) return;
@@ -480,7 +539,6 @@
             document.getElementById('newActivityInput').value = '';
         }
 
-        // QUICK ADD
         function openNewProjectModal() {
             document.getElementById('newProjectModal').classList.remove('hidden');
             document.getElementById('newProjectModal').classList.add('flex');
