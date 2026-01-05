@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager - Classic Pro</title>
+    <title>Project Manager - Restored Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,20 +19,29 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         
         .glass-header { background: #ffffff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
-        .project-card { transition: all 0.2s ease-in-out; cursor: pointer; }
-        .project-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #3b82f6; }
+        
+        /* Project Card Style from Image */
+        .project-card { 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+            transition: all 0.2s ease-in-out; 
+            cursor: pointer; 
+            border: 1px solid #f1f5f9;
+        }
+        .project-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
 
-        /* TAB STYLING FROM IMAGE */
+        /* Tabs Style from Image */
         .nav-tab {
             padding: 12px 24px;
             font-weight: 600;
-            color: #6b7280;
+            color: #64748b;
             border-bottom: 3px solid transparent;
             cursor: pointer;
             transition: all 0.2s;
         }
-        .nav-tab:hover { color: #2563eb; background-color: #f8fafc; }
-        .nav-tab.active { color: #2563eb; border-bottom-color: #2563eb; background-color: #fff; }
+        .nav-tab:hover { color: #3b82f6; background-color: #f8fafc; }
+        .nav-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; background-color: #fff; }
         
         .tab-content { display: none; padding: 24px; }
         .tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
@@ -81,16 +90,16 @@
     </div>
 
     <div id="projectModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-gray-50 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-modal">
+        <div class="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-modal">
             
-            <div class="bg-white px-8 py-5 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+            <div class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
+                
                 <div class="flex items-center gap-3">
-                    <button onclick="closeProjectModal()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fas fa-times text-xl"></i></button>
-                    <div class="flex gap-2">
-                        <button onclick="saveProject()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2"><i class="fas fa-save"></i> שמור</button>
-                        <button onclick="deleteProject()" class="text-red-500 bg-white border border-red-100 hover:bg-red-50 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2"><i class="fas fa-trash"></i> מחק</button>
-                    </div>
+                    <button onclick="closeProjectModal()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fas fa-times text-xl"></i></button>
+                    <button onclick="saveProject()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2"><i class="fas fa-save"></i> שמור</button>
+                    <button onclick="deleteProject()" class="text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2"><i class="fas fa-trash"></i> מחק</button>
                 </div>
+
                 <div class="text-left">
                     <h2 id="mTitle" class="text-2xl font-black text-gray-800 tracking-tight"></h2>
                     <div class="flex items-center justify-end gap-2 mt-1 text-sm text-gray-500">
@@ -99,7 +108,7 @@
                 </div>
             </div>
 
-            <div class="bg-white border-b border-gray-200 px-8 flex justify-end shadow-sm flex-shrink-0">
+            <div class="bg-white border-b border-gray-100 px-6 flex justify-end shadow-sm flex-shrink-0">
                 <div onclick="switchTab('activity')" id="tab-activity" class="nav-tab">פעילות <i class="far fa-comments ml-1"></i></div>
                 <div onclick="switchTab('timeline')" id="tab-timeline" class="nav-tab">ציר זמן <i class="fas fa-stream ml-1"></i></div>
                 <div onclick="switchTab('management')" id="tab-management" class="nav-tab">ניהולי <i class="fas fa-list-check ml-1"></i></div>
@@ -109,29 +118,30 @@
             <div class="flex-1 overflow-y-auto bg-gray-50 custom-scrollbar">
                 
                 <div id="content-overview" class="tab-content active">
+                    
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                             <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fas fa-shield-alt"></i></div>
                             <div class="text-left">
                                 <div class="text-xs font-bold text-gray-400 uppercase mb-1">רמת סיכון</div>
-                                <select id="mRisk" class="font-black text-lg bg-transparent outline-none text-right" dir="rtl">
+                                <select id="mRisk" class="font-black text-lg bg-transparent outline-none text-right w-full" dir="rtl">
                                     <option value="low">נמוכה</option>
                                     <option value="medium">בינונית</option>
                                     <option value="high">גבוהה</option>
                                 </select>
                             </div>
                         </div>
-                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                             <div class="flex justify-between items-center mb-2 border-b border-gray-50 pb-2">
                                 <span class="font-mono font-bold text-gray-700" id="dispStart"></span>
-                                <span class="text-xs text-gray-400 font-bold uppercase">התחלה</span>
+                                <span class="text-xs text-gray-400 font-bold uppercase">התחלה:</span>
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="font-mono font-bold text-gray-700" id="dispEnd"></span>
-                                <span class="text-xs text-gray-400 font-bold uppercase">יעד</span>
+                                <span class="text-xs text-gray-400 font-bold uppercase">יעד:</span>
                             </div>
                         </div>
-                        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                             <div class="text-3xl font-black text-blue-600" id="dispProgress">0%</div>
                             <div class="text-right">
                                 <div class="text-xs font-bold text-gray-400 uppercase">הושלם</div>
@@ -140,20 +150,20 @@
                         </div>
                     </div>
 
-                    <div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
+                    <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
                         <h3 class="font-bold text-gray-800 text-lg mb-6 text-right border-b pb-3">עריכת פרטים</h3>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">שם הפרויקט</label><input id="mNameInput" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition"></div>
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תקציב (₪)</label><input type="number" id="mBudget" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition"></div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">שם הפרויקט</label><input id="mNameInput" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תקציב (₪)</label><input type="number" id="mBudget" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך התחלה</label><input type="date" id="mStart" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition"></div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך התחלה</label><input type="date" id="mStart" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"></div>
                             <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">סטטוס</label>
-                                <select id="mStatus" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition">
-                                    <option value="מתוכנן">מתוכנן</option>
-                                    <option value="בתהליך">בתהליך</option>
+                                <select id="mStatus" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition">
+                                    <option value="planned">מתוכנן</option>
+                                    <option value="planned">planned</option> <option value="בתהליך">בתהליך</option>
                                     <option value="הושלם">הושלם</option>
                                     <option value="עצור">עצור</option>
                                 </select>
@@ -161,24 +171,24 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך סיום</label><input type="date" id="mEnd" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition"></div>
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">אחראי</label><input id="mManager" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition"></div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך סיום</label><input type="date" id="mEnd" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"></div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">אחראי</label><input id="mManager" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
                         </div>
 
                         <div class="mb-4">
                             <label class="block text-xs font-bold text-gray-500 mb-1 text-right">תיאור ומטרה</label>
-                            <textarea id="mDesc" rows="3" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition"></textarea>
+                            <textarea id="mDesc" rows="3" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></textarea>
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-1 text-right">צוות הפרויקט</label>
-                            <input id="mTeam" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition" placeholder="שמות חברי הצוות...">
+                            <input id="mTeam" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition" placeholder="למשל: רונית, חגי, ירדן">
                         </div>
                     </div>
                 </div>
 
                 <div id="content-management" class="tab-content">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                         <h3 class="font-bold text-gray-800 mb-4 text-right">משימות</h3>
                         <div class="flex gap-2 mb-4">
                             <button onclick="addTask()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold hover:bg-blue-200">הוסף</button>
@@ -189,19 +199,19 @@
                 </div>
 
                 <div id="content-timeline" class="tab-content">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                        <h3 class="font-bold text-gray-800 mb-4 text-right">אבני דרך</h3>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-800 mb-4 text-right">אבני דרך (Milestones)</h3>
                         <div class="flex gap-2 mb-4">
                             <button onclick="addMilestone()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold hover:bg-blue-200">הוסף</button>
                             <input type="text" id="newMileText" class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-right outline-none" placeholder="תיאור..." onkeypress="if(event.key === 'Enter') addMilestone()">
-                            <input type="date" id="newMileDate" class="border border-gray-200 rounded-xl px-3 py-2 outline-none">
+                            <input type="date" id="newMileDate" class="border border-gray-200 rounded-xl px-3 py-2 outline-none bg-white">
                         </div>
                         <div id="milestonesList" class="space-y-4"></div>
                     </div>
                 </div>
 
                 <div id="content-activity" class="tab-content">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                         <h3 class="font-bold text-gray-800 mb-4 text-right">יומן פעילות</h3>
                         <div class="mb-4 text-right">
                             <textarea id="newActivityInput" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none" rows="2" placeholder="עדכון חדש..."></textarea>
@@ -300,23 +310,36 @@
             const container = document.getElementById('projectsGrid');
             if(projectsData.length === 0) { container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400">אין פרויקטים</div>`; return; }
             
-            container.innerHTML = projectsData.map(p => `
-                <div onclick="openProjectModal('${p.id}')" class="project-card bg-white border border-gray-100 rounded-2xl p-6 relative flex flex-col h-full">
+            container.innerHTML = projectsData.map(p => {
+                // Ensure default values to prevent undefined errors
+                const name = p.name || 'ללא שם';
+                const status = p.status || 'planned';
+                const dept = p.department || 'כללי';
+                const end = p.endDate ? `יעד: ${p.endDate}` : '---';
+                const progress = p.progress || 0;
+                const budget = p.budget || 0;
+
+                return `
+                <div onclick="openProjectModal('${p.id}')" class="project-card p-6 flex flex-col h-full">
                     <div class="flex justify-between items-start mb-4">
-                        <div class="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">${p.status || 'בתהליך'}</div>
-                        <div class="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">${p.department || 'כללי'}</div>
+                        <div class="text-xs text-gray-400 font-mono">${end}</div>
+                        <div class="flex gap-2">
+                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">${dept}</span>
+                            <span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold">${status}</span>
+                        </div>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2 text-right">${p.name}</h3>
-                    <div class="mt-auto">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2 text-right">${name}</h3>
+                    <div class="mt-auto pt-4 border-t border-gray-50">
                         <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2">
-                            <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${p.progress || 0}%"></div>
+                            <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${progress}%"></div>
                         </div>
                         <div class="flex justify-between items-center text-xs text-gray-500">
-                            <span>${p.progress || 0}% הושלם</span>
-                            <span class="font-bold">₪${parseInt(p.budget || 0).toLocaleString()}</span>
+                            <span>₪${parseInt(budget).toLocaleString()}</span>
+                            <span>${progress}% הושלם</span>
                         </div>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
 
         // MODAL LOGIC
@@ -325,30 +348,29 @@
             if(!p) return;
             currentProject = p;
 
-            // Fill Header
+            // Header
             document.getElementById('mTitle').innerText = p.name;
             document.getElementById('mDept').innerText = p.department || 'כללי';
 
-            // Fill Top Cards
+            // Cards
             document.getElementById('mRisk').value = p.risk || 'low';
             document.getElementById('mProgress').value = p.progress || 0;
             document.getElementById('dispProgress').innerText = (p.progress || 0) + '%';
             document.getElementById('dispStart').innerText = p.startDate || '--';
             document.getElementById('dispEnd').innerText = p.endDate || '--';
 
-            // Fill Inputs
+            // Form
             document.getElementById('mNameInput').value = p.name || '';
             document.getElementById('mBudget').value = p.budget || '';
             document.getElementById('mStart').value = p.startDate || '';
             document.getElementById('mEnd').value = p.endDate || '';
-            document.getElementById('mStatus').value = p.status || 'מתוכנן';
+            document.getElementById('mStatus').value = p.status || 'planned';
             document.getElementById('mManager').value = p.manager || '';
             document.getElementById('mDesc').value = p.description || '';
             document.getElementById('mTeam').value = p.team || '';
 
-            // Lists
             renderLists();
-
+            switchTab('overview');
             document.getElementById('projectModal').classList.remove('hidden');
             document.getElementById('projectModal').classList.add('flex');
         }
@@ -370,20 +392,20 @@
             // Tasks
             const tasks = currentProject.tasks || [];
             document.getElementById('tasksList').innerHTML = tasks.map((t, i) => `
-                <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-1">
                     <div class="flex items-center gap-2">
-                        <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})" class="cursor-pointer">
-                        <span class="${t.done ? 'line-through text-gray-400' : ''}">${t.text}</span>
+                        <button onclick="deleteTask(${i})" class="text-gray-300 hover:text-red-500"><i class="fas fa-times"></i></button>
+                        <span class="${t.done ? 'line-through text-gray-400' : ''} text-sm">${t.text}</span>
                     </div>
-                    <button onclick="deleteTask(${i})" class="text-red-400 hover:text-red-600"><i class="fas fa-times"></i></button>
+                    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})" class="cursor-pointer">
                 </div>`).join('');
 
             // Milestones
             const ms = currentProject.milestones || [];
             document.getElementById('milestonesList').innerHTML = ms.map(m => `
-                <div class="flex justify-between items-center border-b border-gray-100 pb-2">
-                    <div class="font-bold text-gray-700">${m.title}</div>
+                <div class="flex justify-between items-center border-b border-gray-50 pb-2">
                     <div class="text-xs text-gray-500">${m.date}</div>
+                    <div class="font-bold text-gray-700 text-sm">${m.title}</div>
                 </div>`).join('');
 
             // Activity
@@ -392,10 +414,10 @@
             document.getElementById('activityList').innerHTML = sortedActs.map(a => `
                 <div class="bg-gray-50 p-3 rounded-xl">
                     <div class="flex justify-between text-xs text-gray-400 mb-1">
-                        <span>${a.user.split('@')[0]}</span>
                         <span dir="ltr">${new Date(a.date).toLocaleString('he-IL')}</span>
+                        <span class="font-bold">${a.user.split('@')[0]}</span>
                     </div>
-                    <div class="text-sm text-gray-700">${a.text}</div>
+                    <div class="text-sm text-gray-700 text-right">${a.text}</div>
                 </div>`).join('');
         }
 
@@ -415,12 +437,13 @@
                 team: document.getElementById('mTeam').value
             };
             db.collection('projects').doc(currentProject.id).update(data).then(() => {
-                alert('נשמר בהצלחה');
+                alert('השינויים נשמרו בהצלחה!');
+                closeProjectModal(); // Close to refresh view properly
             });
         }
 
         function deleteProject() {
-            if(confirm('למחוק את הפרויקט?')) {
+            if(confirm('למחוק את הפרויקט לצמיתות?')) {
                 db.collection('projects').doc(currentProject.id).delete().then(() => closeProjectModal());
             }
         }
@@ -471,7 +494,7 @@
             const dept = document.getElementById('npDept').value;
             if(!name) return alert('חובה להזין שם');
             db.collection('projects').add({
-                name: name, department: dept, status: 'מתוכנן', progress: 0, risk: 'low',
+                name: name, department: dept, status: 'planned', progress: 0, risk: 'low',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => { closeNewProjectModal(); });
         }
