@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V50 - Timeline</title>
+    <title>Project Manager V51 - Departments & Timeline</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -57,15 +57,19 @@
                         <a href="helpdesk.html" class="mr-4 text-sm font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 transition"><i class="fas fa-tools"></i> מעבר לתקלות</a>
                     </div>
 
-                    <div class="flex gap-2 items-center">
+                    <div class="flex gap-2 items-center flex-wrap">
                         <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hidden sm:block"></span>
                         
-                        <div class="flex bg-gray-100 p-1 rounded-xl">
-                            <button onclick="setView('grid')" id="btnGrid" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white shadow text-gray-800"><i class="fas fa-th-large"></i> קוביות</button>
-                            <button onclick="setView('timeline')" id="btnTimeline" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-gray-500 hover:text-gray-700"><i class="fas fa-calendar-alt"></i> ציר זמן</button>
+                        <select id="filterProjectDept" onchange="renderView()" class="bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-xl px-3 py-2 outline-none shadow-sm cursor-pointer hover:border-blue-400 transition h-[34px]">
+                            <option value="all">🏢 כל המחלקות</option>
+                            </select>
+
+                        <div class="flex bg-gray-100 p-1 rounded-xl h-[34px] items-center">
+                            <button onclick="setView('grid')" id="btnGrid" class="px-3 py-1 rounded-lg text-xs font-bold transition bg-white shadow text-gray-800"><i class="fas fa-th-large"></i> קוביות</button>
+                            <button onclick="setView('timeline')" id="btnTimeline" class="px-3 py-1 rounded-lg text-xs font-bold transition text-gray-500 hover:text-gray-700"><i class="fas fa-calendar-alt"></i> ציר זמן</button>
                         </div>
 
-                        <button onclick="openNewProjectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
+                        <button onclick="openNewProjectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5 h-[34px]">
                             <i class="fas fa-plus"></i> פרויקט חדש
                         </button>
                         <button onclick="auth.signOut()" class="text-gray-400 hover:text-red-500 p-2 transition"><i class="fas fa-sign-out-alt text-lg"></i></button>
@@ -96,21 +100,28 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">מחלקה</label>
+                        <select id="npDept" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 transition bg-white">
+                            </select>
+                    </div>
+                    <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">תקציב (₪)</label>
                         <input type="number" id="npBudget" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 transition" placeholder="0">
                     </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 mb-1">תאריך יעד לסיום</label>
                         <input type="date" id="npDate" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 transition bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">מנהל פרויקט</label>
+                        <input id="npManager" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 transition" placeholder="שם האחראי">
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1">תיאור</label>
                     <textarea id="npDesc" rows="3" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 transition" placeholder="פרטים על הפרויקט..."></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">מנהל פרויקט</label>
-                    <input id="npManager" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-blue-500 transition" placeholder="שם האחראי">
                 </div>
             </div>
             <div class="p-4 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3">
@@ -136,6 +147,8 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים'];
+        
         let projectsData = [];
         let currentView = 'grid'; // 'grid' or 'timeline'
 
@@ -146,6 +159,7 @@
                 document.getElementById('app').classList.remove('hidden');
                 document.getElementById('app').classList.add('flex');
                 document.getElementById('userEmailDisplay').textContent = user.email.split('@')[0];
+                initDepartments();
                 loadProjects();
             } else {
                 document.getElementById('loginScreen').classList.remove('hidden');
@@ -160,6 +174,17 @@
                 const errDiv = document.getElementById('authError');
                 errDiv.textContent = "שגיאה: " + err.message;
                 errDiv.classList.remove('hidden');
+            });
+        }
+
+        function initDepartments() {
+            const filter = document.getElementById('filterProjectDept');
+            const modalSelect = document.getElementById('npDept');
+            
+            // Populate Filter
+            DEPARTMENTS.forEach(d => {
+                filter.innerHTML += `<option value="${d}">${d}</option>`;
+                modalSelect.innerHTML += `<option value="${d}">${d}</option>`;
             });
         }
 
@@ -200,26 +225,37 @@
         }
 
         function renderView() {
+            // Filter by Department Logic (NEW V51)
+            const filterDept = document.getElementById('filterProjectDept').value;
+            let filteredProjects = projectsData;
+            
+            if (filterDept !== 'all') {
+                filteredProjects = projectsData.filter(p => p.department === filterDept);
+            }
+
             if (currentView === 'grid') {
-                renderGrid();
+                renderGrid(filteredProjects);
             } else {
-                renderTimeline();
+                renderTimeline(filteredProjects);
             }
         }
 
-        function renderGrid() {
+        function renderGrid(data) {
             const container = document.getElementById('gridViewContainer');
-            if(projectsData.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400">אין פרויקטים להצגה</div>`;
+            if(data.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400">אין פרויקטים להצגה במחלקה זו</div>`;
                 return;
             }
 
-            container.innerHTML = projectsData.map(p => {
+            container.innerHTML = data.map(p => {
                 const dateDisplay = p.dueDate ? new Date(p.dueDate).toLocaleDateString('he-IL') : 'אין תאריך';
                 return `
                 <div class="project-card bg-white border border-gray-100 rounded-2xl p-6 relative flex flex-col h-full">
                     <div class="flex justify-between items-start mb-4">
-                        <div class="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">${p.status || 'בתהליך'}</div>
+                        <div class="flex gap-2">
+                            <div class="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">${p.status || 'בתהליך'}</div>
+                            <div class="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">${p.department || 'כללי'}</div>
+                        </div>
                         <div class="text-xs text-gray-400 font-mono">${dateDisplay}</div>
                     </div>
                     <h3 class="text-xl font-bold text-gray-800 mb-2">${p.name}</h3>
@@ -232,15 +268,15 @@
             }).join('');
         }
 
-        function renderTimeline() {
+        function renderTimeline(data) {
             const container = document.getElementById('timelineViewContainer');
-            if(projectsData.length === 0) {
-                container.innerHTML = `<div class="text-center py-20 text-gray-400">אין פרויקטים להצגה</div>`;
+            if(data.length === 0) {
+                container.innerHTML = `<div class="text-center py-20 text-gray-400">אין פרויקטים להצגה בציר הזמן</div>`;
                 return;
             }
 
             // Sort by date
-            const sorted = [...projectsData].sort((a,b) => {
+            const sorted = [...data].sort((a,b) => {
                 const dateA = a.dueDate ? new Date(a.dueDate) : new Date('2099-01-01');
                 const dateB = b.dueDate ? new Date(b.dueDate) : new Date('2099-01-01');
                 return dateA - dateB;
@@ -271,7 +307,10 @@
                                 <div class="absolute -right-[35px] top-6 timeline-dot"></div>
                                 <div class="flex justify-between items-start">
                                     <div>
-                                        <h4 class="font-bold text-gray-800 text-lg">${p.name}</h4>
+                                        <div class="flex gap-2 items-center mb-1">
+                                            <h4 class="font-bold text-gray-800 text-lg">${p.name}</h4>
+                                            <span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full">${p.department || 'כללי'}</span>
+                                        </div>
                                         <p class="text-sm text-gray-500 mt-1">${p.description}</p>
                                     </div>
                                     <div class="text-left">
@@ -292,14 +331,17 @@
             html += '</div>';
 
             // Show projects without date at bottom
-            const noDate = projectsData.filter(p => !p.dueDate);
+            const noDate = data.filter(p => !p.dueDate);
             if(noDate.length > 0) {
                 html += `<div class="mt-10 pt-6 border-t border-gray-200">
                     <h4 class="text-gray-400 font-bold mb-4 text-center">פרויקטים ללא תאריך יעד</h4>
                     <div class="grid grid-cols-1 gap-4">
                         ${noDate.map(p => `
-                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 opacity-70">
-                                <span class="font-bold text-gray-700">${p.name}</span>
+                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 opacity-70 flex justify-between">
+                                <div>
+                                    <span class="font-bold text-gray-700">${p.name}</span>
+                                    <span class="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full mr-2">${p.department || 'כללי'}</span>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -319,6 +361,7 @@
             document.getElementById('npDate').value = '';
             document.getElementById('npDesc').value = '';
             document.getElementById('npManager').value = '';
+            document.getElementById('npDept').selectedIndex = 0;
         }
 
         function closeNewProjectModal() {
@@ -332,6 +375,7 @@
             const date = document.getElementById('npDate').value;
             const desc = document.getElementById('npDesc').value;
             const manager = document.getElementById('npManager').value;
+            const dept = document.getElementById('npDept').value;
 
             if(!name) return alert('חובה להזין שם פרויקט');
 
@@ -341,6 +385,7 @@
                 dueDate: date,
                 description: desc,
                 manager: manager,
+                department: dept, // New Field
                 status: 'בתהליך',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
