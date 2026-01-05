@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Desk V45 - Resolution & Save</title>
+    <title>Service Desk V46 - Excel & Alerts</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -36,6 +36,11 @@
         .tab-btn.active { border-bottom-color: #dc2626; color: #dc2626; background-color: #fff; }
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
+
+        /* Overdue Animation */
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .overdue-card { border: 2px solid #ef4444 !important; background-color: #fef2f2 !important; }
+        .overdue-badge { animation: pulse-red 2s infinite; }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
@@ -71,9 +76,12 @@
 
                     <div class="flex gap-2 items-center flex-wrap justify-center md:justify-end w-full md:w-auto">
                         <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hidden sm:block"></span>
-                        <div id="adminBadge" class="hidden bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded border border-red-200">מנהל</div>
                         
-                        <button onclick="openNewTicketModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
+                        <button onclick="exportTicketsToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition">
+                            <i class="fas fa-file-excel"></i> ייצוא לאקסל
+                        </button>
+
+                        <button onclick="openNewTicketModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
                             <i class="fas fa-plus-circle"></i> תקלה חדשה
                         </button>
                         
@@ -118,13 +126,10 @@
                 </div>
                 <div class="flex gap-3 items-center">
                     <span id="modalTicketUrgencyBadge"></span>
-                    
                     <select id="editTicketStatus" class="bg-white border border-gray-200 text-sm rounded-lg px-3 py-1.5 outline-none cursor-pointer hover:border-blue-300 font-bold text-gray-700 hidden"></select>
-                    
                     <button onclick="saveTicketChanges()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow-md transition flex items-center gap-2">
                         <i class="fas fa-save"></i> שמור שינויים
                     </button>
-                    
                     <button onclick="closeFullTicketModal()" class="text-gray-400 hover:text-gray-600 p-2 transition ml-2"><i class="fas fa-times text-xl"></i></button>
                 </div>
             </div>
@@ -138,7 +143,6 @@
             <div class="flex-1 overflow-y-auto bg-gray-50 custom-scrollbar relative p-6">
                 
                 <div id="content-ticket-details" class="tab-content active space-y-6">
-                    
                     <div class="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm ring-1 ring-blue-50">
                         <h3 class="font-bold text-gray-800 mb-2 text-sm flex items-center gap-2">
                             <i class="fas fa-check-double text-blue-500"></i> פירוט ביצוע / סיכום טיפול
@@ -408,6 +412,37 @@
             }
         }
 
+        // ================= EXCEL EXPORT (NEW V46) =================
+        function exportTicketsToExcel() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "מזהה,נושא,מיקום,מחלקה,דחיפות,סטטוס,מדווח,מטפל,תאריך פתיחה,תאריך סגירה,נסגר ע\"י,סיכום טיפול\n";
+            
+            ticketsData.forEach(t => {
+                const created = t.createdAt ? new Date(t.createdAt.seconds * 1000).toLocaleString('he-IL') : '';
+                const closed = t.closedAt ? new Date(t.closedAt).toLocaleString('he-IL') : '';
+                const closedBy = t.closedBy ? getHebrewName(t.closedBy) : '';
+                const urgency = TICKET_URGENCY[t.urgency]?.label || 'רגילה';
+                const status = TICKET_STATUSES[t.status]?.label || t.status;
+                const assignee = t.assignee ? getHebrewName(t.assignee) : '';
+                const reporter = getHebrewName(t.reporter);
+                
+                const safeDesc = (t.title || '').replace(/,/g, " ").replace(/\n/g, " ");
+                const safeRes = (t.resolution || '').replace(/,/g, " ").replace(/\n/g, " ");
+
+                const row = [
+                    t.id, safeDesc, t.site, t.department || '', urgency, status, reporter, assignee, created, closed, closedBy, safeRes
+                ].join(",");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "service_tickets_report.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+
         // ================= SERVICE DESK LOGIC =================
         function openNewTicketModal() {
             safeVal('ntTitle', ''); safeVal('ntDesc', ''); safeVal('ntAssignee', ''); safeVal('ntUrgency', 'normal');
@@ -453,9 +488,9 @@
                 image: newTicketImageBase64, 
                 checklist: [], 
                 activities: [],
-                resolution: '', // New Field
-                closedBy: null, // New Field
-                closedAt: null, // New Field
+                resolution: '', 
+                closedBy: null, 
+                closedAt: null, 
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
@@ -500,13 +535,31 @@
             const imageHTML = t.image ? `<img src="${t.image}" class="ticket-card-image">` : `<div class="ticket-card-image bg-gray-100 flex items-center justify-center text-gray-300"><i class="fas fa-image text-3xl"></i></div>`;
             const dept = t.department || 'כללי';
             
-            const elapsedTime = t.createdAt ? getElapsedTime(new Date(t.createdAt.seconds * 1000)) : 'חדש';
+            // Time Calc & Overdue Logic (NEW V46)
+            let createdDate = t.createdAt ? new Date(t.createdAt.seconds * 1000) : new Date();
+            const now = new Date();
+            const diffTime = Math.abs(now - createdDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            
+            const elapsedTime = getElapsedTime(createdDate);
+            
+            // Check if Overdue (More than 7 days and NOT done)
+            const isOverdue = (diffDays > 7 && t.status !== 'done');
+            
+            let cardClasses = "bg-white border border-gray-100";
+            let overdueBadge = "";
+            
+            if (isOverdue) {
+                cardClasses = "overdue-card shadow-xl"; // Custom red style
+                overdueBadge = `<div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide overdue-badge z-10"><i class="fas fa-exclamation-triangle"></i> בפיגור (${diffDays} ימים)</div>`;
+            }
 
             return `
-            <div onclick="openFullTicket('${t.id}')" class="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-lg transition cursor-pointer relative group flex flex-col overflow-hidden">
+            <div onclick="openFullTicket('${t.id}')" class="${cardClasses} rounded-2xl shadow-sm hover:shadow-lg transition cursor-pointer relative group flex flex-col overflow-hidden">
+                ${overdueBadge}
                 ${imageHTML}
-                <div class="absolute top-2 right-2 flex gap-1">
-                    <span class="urgency-badge border ${u.color}">${u.label}</span>
+                <div class="absolute top-2 right-2 flex gap-1 z-10">
+                    <span class="urgency-badge border ${u.color} bg-white/90 backdrop-blur-sm shadow-sm">${u.label}</span>
                 </div>
                 <div class="p-5 flex-1 flex flex-col">
                     <div class="flex justify-between items-start mb-3">
@@ -517,7 +570,7 @@
                     <div class="text-xs text-gray-500 mb-2 font-medium bg-gray-50 inline-block px-2 py-0.5 rounded">${dept}</div>
                     <p class="text-sm text-gray-500 flex items-center gap-2 mb-4"><i class="fas fa-map-pin text-red-300"></i> ${t.site}</p>
                     
-                    <div class="mt-auto flex items-center justify-between text-xs text-gray-500 border-t border-gray-50 pt-3">
+                    <div class="mt-auto flex items-center justify-between text-xs text-gray-500 border-t ${isOverdue ? 'border-red-200' : 'border-gray-50'} pt-3">
                         <div class="flex items-center gap-1.5"><i class="fas fa-user-tag text-gray-300"></i> ${reporterName}</div>
                         <div class="flex items-center gap-1.5 font-medium text-gray-700"><i class="fas fa-user-cog text-gray-300"></i> ${t.assignee ? assigneeName : 'טרם שובץ'}</div>
                     </div>
@@ -569,7 +622,6 @@
             safeText('modalTicketDesc', t.description);
             safeVal('ticketResolution', t.resolution || ''); // Set resolution text
             
-            // Closed By Badge
             if(t.closedBy) {
                 const closerName = getHebrewName(t.closedBy);
                 const closeDate = t.closedAt ? new Date(t.closedAt).toLocaleDateString('he-IL') : '';
@@ -602,7 +654,6 @@
             renderActivityFeed();
         }
 
-        // --- NEW SAVE LOGIC (V45) ---
         function saveTicketChanges() {
             const newStatus = safeVal('editTicketStatus');
             const resolution = safeVal('ticketResolution');
@@ -612,7 +663,6 @@
                 resolution: resolution
             };
 
-            // If status changed to DONE, record who closed it
             if (newStatus === 'done' && currentEditingTicket.status !== 'done') {
                 updateData.closedBy = currentUser.email;
                 updateData.closedAt = new Date().toISOString();
@@ -624,7 +674,6 @@
             }).catch(e => alert("שגיאה בשמירה: " + e.message));
         }
 
-        // --- TASKS / CHECKLIST LOGIC ---
         function renderTicketTasks() {
             const list = safeGet('ticketTasksList');
             const tasks = currentEditingTicket.checklist || [];
@@ -669,7 +718,6 @@
             db.collection('service_tickets').doc(currentEditingTicket.id).update({ checklist: newChecklist });
         }
 
-        // --- UTILS ---
         function getElapsedTime(startDate) {
             const now = new Date();
             const diff = now - startDate;
@@ -678,8 +726,6 @@
             if (days > 0) return `${days} ימים ו-${hours} שעות`;
             return `${hours} שעות`;
         }
-
-        // Removed auto-save updateTicketStatusFromModal function as it's replaced by saveTicketChanges
 
         function handleFileSelect(input) { if (input.files && input.files[0]) { selectedFile = input.files[0]; if (selectedFile.size > 2*1024*1024) { alert("קובץ גדול מדי (מקסימום 2MB)"); selectedFile = null; return; } const d = safeGet('fileNameDisplay'); if(d) { d.textContent = selectedFile.name; d.classList.remove('hidden'); }}}
         function addActivityNote() { const txt = safeVal('newNoteText'); if(!txt.trim() && !selectedFile) return; const save = (fileData) => { const activity = { user: currentUser.email, text: txt, date: new Date().toISOString(), file: fileData }; const newActs = [...(currentEditingTicket.activities || []), activity]; db.collection('service_tickets').doc(currentEditingTicket.id).update({ activities: newActs }).then(() => { safeGet('newNoteText').value = ''; safeGet('fileNameDisplay').classList.add('hidden'); selectedFile = null; }); }; if (selectedFile) { const reader = new FileReader(); reader.onload = (e) => save({ name: selectedFile.name, type: selectedFile.type, data: e.target.result }); reader.readAsDataURL(selectedFile); } else { save(null); } }
