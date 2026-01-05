@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V61 - Calendar & Filter</title>
+    <title>Project Manager V66 - Municipal Edition (Full)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -36,24 +36,40 @@
         .tab-content { display: none; padding: 24px; }
         .tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
 
-        /* CALENDAR STYLES */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #e5e7eb; border: 1px solid #e5e7eb; }
+        /* Calendar / Gantt Styles */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background-color: #e5e7eb; border: 1px solid #e5e7eb; gap: 1px; }
         .calendar-header { background-color: #f8fafc; color: #64748b; font-weight: bold; text-align: center; padding: 10px 0; font-size: 0.85rem; }
-        .calendar-day { background-color: white; min-height: 120px; padding: 4px; position: relative; }
+        .calendar-day { background-color: white; min-height: 140px; padding: 2px 0; position: relative; display: flex; flex-direction: column; }
         .calendar-day.other-month { background-color: #f9fafb; color: #cbd5e1; }
         .calendar-day.today { background-color: #eff6ff; }
-        .day-number { font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 4px; display: block; text-align: left; padding-left: 4px; }
+        .day-number { font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 4px; padding-right: 6px; text-align: right; }
         
-        .cal-event { 
-            font-size: 0.7rem; padding: 2px 6px; margin-bottom: 2px; border-radius: 4px; 
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; 
-            font-weight: 500; transition: all 0.1s;
+        .event-bar-container { position: absolute; top: 25px; left: 0; right: 0; display: flex; flex-direction: column; gap: 2px; }
+        
+        /* Updated Task Style - Matches Project Blue */
+        .cal-event-segment { height: 18px; margin-bottom: 2px; font-size: 0.65rem; color: white; display: flex; align-items: center; padding: 0 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 10; opacity: 0.9; }
+        .is-start { border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-right: 2px; }
+        .is-end { border-top-left-radius: 4px; border-bottom-left-radius: 4px; margin-left: 2px; }
+        .is-middle { margin: 0 -1px; z-index: 5; }
+        
+        /* Task dots inside calendar - CHANGED TO BLUE */
+        .task-dot { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; display: inline-block; margin-right: 4px; border: 1px solid white; }
+        .task-marker { 
+            font-size: 0.65rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; 
+            border-radius: 12px; padding: 2px 8px; margin-top: 2px; display: flex; align-items: center;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95%; margin-right: auto; margin-left: auto;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: transform 0.1s;
         }
-        .cal-event:hover { transform: scale(1.02); z-index: 10; }
-        .cal-planned { background: #f1f5f9; color: #475569; border-left: 3px solid #94a3b8; }
-        .cal-active { background: #eff6ff; color: #1e40af; border-left: 3px solid #3b82f6; }
-        .cal-done { background: #f0fdf4; color: #166534; border-left: 3px solid #22c55e; }
-        .cal-blocked { background: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444; }
+        .task-marker:hover { transform: scale(1.02); border-color: #3b82f6; }
+
+        .cal-planned { background-color: #94a3b8; }
+        .cal-active { background-color: #3b82f6; }
+        .cal-done { background-color: #10b981; }
+        .cal-blocked { background-color: #ef4444; }
+
+        /* Internal Gantt Bar */
+        .gantt-track { background-color: #e2e8f0; border-radius: 8px; height: 36px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .gantt-bar { position: absolute; top: 4px; bottom: 4px; border-radius: 6px; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-left: 8px; color: white; font-size: 0.75rem; font-weight: bold; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .animate-modal { animation: scaleUp 0.15s ease-out forwards; }
@@ -81,9 +97,8 @@
                     <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md"><i class="fas fa-project-diagram text-xl"></i></div>
                     <div>
                         <h1 class="text-2xl font-bold text-gray-900 leading-none">מערכת פרויקטים</h1>
-                        <p class="text-xs text-gray-500 mt-1 font-medium">ניהול מקיף</p>
+                        <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
                     </div>
-                    <a href="helpdesk.html" class="mr-4 text-sm font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 transition"><i class="fas fa-tools"></i> מעבר לתקלות</a>
                 </div>
                 <div class="flex items-center gap-3">
                     <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono hidden sm:block"></span>
@@ -124,29 +139,39 @@
 
     <div id="calendarModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
-            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
-                <div class="flex items-center gap-4">
-                    <h3 class="text-2xl font-black text-gray-800 flex items-center gap-2"><i class="far fa-calendar-alt text-purple-800"></i> גאנט ניהולי</h3>
-                    <div class="flex items-center bg-gray-100 rounded-lg p-1">
-                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-white hover:shadow-sm rounded-md transition"><i class="fas fa-chevron-right"></i></button>
-                        <span id="calMonthYear" class="px-4 font-bold text-gray-700 min-w-[120px] text-center"></span>
-                        <button onclick="changeMonth(1)" class="p-2 hover:bg-white hover:shadow-sm rounded-md transition"><i class="fas fa-chevron-left"></i></button>
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+                <div class="flex items-center gap-5">
+                    <div class="bg-purple-600 text-white p-3 rounded-2xl shadow-lg flex items-center justify-center">
+                        <i class="far fa-calendar-alt text-2xl"></i>
                     </div>
-                    <select id="calDeptFilter" onchange="renderCalendar()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-1.5 outline-none cursor-pointer font-medium">
+                    <div>
+                        <h3 class="text-2xl font-black text-gray-800 leading-none">גאנט ניהולי</h3>
+                        <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
+                    </div>
+                    
+                    <div class="h-8 w-px bg-gray-200 mx-2"></div>
+
+                    <div class="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200">
+                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-white hover:shadow-sm rounded-lg transition text-gray-600"><i class="fas fa-chevron-right"></i></button>
+                        <span id="calMonthYear" class="px-4 font-bold text-gray-700 min-w-[130px] text-center"></span>
+                        <button onclick="changeMonth(1)" class="p-2 hover:bg-white hover:shadow-sm rounded-lg transition text-gray-600"><i class="fas fa-chevron-left"></i></button>
+                    </div>
+                    <select id="calDeptFilter" onchange="renderCalendar()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none cursor-pointer font-medium hover:border-purple-300 transition">
                         <option value="all">🏢 כל המחלקות</option>
                     </select>
                 </div>
-                <button onclick="document.getElementById('calendarModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 p-2 rounded-lg transition"><i class="fas fa-times text-gray-500"></i></button>
+                <button onclick="document.getElementById('calendarModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-red-500 p-3 rounded-xl transition"><i class="fas fa-times text-lg"></i></button>
             </div>
+            
             <div class="flex-1 overflow-y-auto bg-white p-6 custom-scrollbar">
-                <div class="calendar-grid rounded-xl overflow-hidden shadow-sm">
-                    <div class="calendar-header">ראשון</div>
-                    <div class="calendar-header">שני</div>
-                    <div class="calendar-header">שלישי</div>
-                    <div class="calendar-header">רביעי</div>
-                    <div class="calendar-header">חמישי</div>
-                    <div class="calendar-header">שישי</div>
-                    <div class="calendar-header">שבת</div>
+                <div class="calendar-grid rounded-2xl overflow-hidden shadow-sm border border-gray-200">
+                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">ראשון</div>
+                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">שני</div>
+                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">שלישי</div>
+                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">רביעי</div>
+                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">חמישי</div>
+                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">שישי</div>
+                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">שבת</div>
                     <div id="calendarBody" class="col-span-7 grid grid-cols-7 gap-px bg-gray-200"></div>
                 </div>
             </div>
@@ -188,12 +213,14 @@
                     </div>
                 </div>
             </div>
+            
             <div class="bg-white border-b border-gray-100 px-6 flex justify-end shadow-sm flex-shrink-0">
                 <div onclick="switchTab('activity')" id="tab-activity" class="nav-tab">פעילות <i class="far fa-comments ml-1"></i></div>
                 <div onclick="switchTab('timeline')" id="tab-timeline" class="nav-tab">ציר זמן פנימי <i class="fas fa-stream ml-1"></i></div>
                 <div onclick="switchTab('management')" id="tab-management" class="nav-tab">ניהולי <i class="fas fa-list-check ml-1"></i></div>
                 <div onclick="switchTab('overview')" id="tab-overview" class="nav-tab active">סקירה <i class="far fa-eye ml-1"></i></div>
             </div>
+
             <div class="flex-1 overflow-y-auto bg-gray-50 custom-scrollbar">
                 <div id="content-overview" class="tab-content active">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
@@ -209,7 +236,7 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                             <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך התחלה</label><input type="date" id="mStart" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"></div>
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">סטטוס</label><select id="mStatus" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"><option value="planned">מתוכנן</option><option value="בתהליך">בתהליך</option><option value="הושלם">הושלם</option><option value="עצור">עצור</option></select></div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">סטטוס</label><select id="mStatus" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"><option value="מתוכנן">מתוכנן</option><option value="בתהליך">בתהליך</option><option value="הושלם">הושלם</option><option value="עצור">עצור</option></select></div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                             <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך סיום</label><input type="date" id="mEnd" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"></div>
@@ -219,20 +246,26 @@
                         <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">צוות הפרויקט</label><input id="mTeam" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition" placeholder="למשל: רונית, חגי, ירדן"></div>
                     </div>
                 </div>
+
                 <div id="content-management" class="tab-content">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <h3 class="font-bold text-gray-800 mb-4 text-right">משימות</h3>
-                        <div class="flex gap-2 mb-4"><button onclick="addTask()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold hover:bg-blue-200">הוסף</button><input type="text" id="newTaskInput" class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-right outline-none focus:border-blue-500" placeholder="משימה חדשה..." onkeypress="if(event.key === 'Enter') addTask()"></div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                        <h3 class="font-bold text-gray-800 mb-4 text-right">משימות לביצוע</h3>
+                        <div class="flex gap-2 mb-4">
+                            <button onclick="addTask()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold hover:bg-blue-200">הוסף</button>
+                            <input type="date" id="newTaskDate" class="border border-gray-200 rounded-xl px-3 py-2 outline-none bg-white">
+                            <input type="text" id="newTaskInput" class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-right outline-none focus:border-blue-500" placeholder="משימה חדשה..." onkeypress="if(event.key === 'Enter') addTask()">
+                        </div>
                         <div id="tasksList" class="space-y-2"></div>
                     </div>
                 </div>
+
                 <div id="content-timeline" class="tab-content">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <h3 class="font-bold text-gray-800 mb-4 text-right">חסמים (אבני דרך)</h3>
-                        <div class="flex gap-2 mb-4"><button onclick="addMilestone()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold hover:bg-blue-200">הוסף</button><input type="text" id="newMileText" class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-right outline-none" placeholder="תיאור..." onkeypress="if(event.key === 'Enter') addMilestone()"><input type="date" id="newMileDate" class="border border-gray-200 rounded-xl px-3 py-2 outline-none bg-white"></div>
-                        <div id="milestonesList" class="space-y-4"></div>
+                    <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 justify-end">ציר זמן פרויקט <i class="fas fa-chart-gantt text-blue-500"></i></h3>
+                        <div id="ganttChartContainer"></div>
                     </div>
                 </div>
+
                 <div id="content-activity" class="tab-content">
                     <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                         <h3 class="font-bold text-gray-800 mb-4 text-right">יומן פעילות</h3>
@@ -279,7 +312,6 @@
         let dashCharts = {};
         let currentCalDate = new Date();
 
-        // AUTH
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
@@ -311,7 +343,6 @@
             s.innerHTML = '';
             if(f) f.innerHTML = '<option value="all">כל המחלקות</option>';
             if(c) c.innerHTML = '<option value="all">🏢 כל המחלקות</option>';
-            
             DEPARTMENTS.forEach(d => {
                 s.innerHTML += `<option value="${d}">${d}</option>`;
                 if(f) f.innerHTML += `<option value="${d}">${d}</option>`;
@@ -322,13 +353,45 @@
         function loadProjects() {
             db.collection('projects').onSnapshot(snap => {
                 projectsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+                if (projectsData.length === 0) initDemoProject(); // Auto-create demo for user
                 renderGrid();
                 if(currentProject) {
                     const updated = projectsData.find(p => p.id === currentProject.id);
                     if(updated) { currentProject = updated; openProjectModal(updated.id); }
                 }
-                // Refresh calendar if open
                 if(!document.getElementById('calendarModal').classList.contains('hidden')) renderCalendar();
+            });
+        }
+        
+        // AUTO DEMO CREATOR
+        function initDemoProject() {
+            // Only runs if no projects exist, to help user visualize
+            // Uses current month dates for relevance
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const d1 = `${year}-${month}-01`;
+            const d2 = `${year}-${month}-28`;
+            const t1 = `${year}-${month}-04`; // Matching the visual roughly
+            const t2 = `${year}-${month}-06`;
+            
+            db.collection('projects').add({
+                name: 'הקמת מרכז מבקרים - חוף הים',
+                department: 'נכסים',
+                status: 'בתהליך',
+                progress: 35,
+                budget: 1500000,
+                risk: 'medium',
+                startDate: d1,
+                endDate: d2,
+                manager: 'ישראל ישראלי',
+                description: 'פרויקט דגל של החברה העירונית לפיתוח התיירות.',
+                tasks: [
+                    { text: 'אישור ביצוע הצעת המחיר', date: t1, done: true },
+                    { text: 'קבלת הצעת מחיר ספקים', date: t2, done: true },
+                    { text: 'סיור קבלנים', date: `${year}-${month}-15`, done: false }
+                ],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
 
@@ -351,13 +414,16 @@
                 const progress = p.progress || 0;
                 const budget = p.budget || 0;
 
+                let statusHeb = status;
+                if(status === 'planned') statusHeb = 'מתוכנן';
+
                 return `
                 <div onclick="openProjectModal('${p.id}')" class="project-card p-6 flex flex-col h-full">
                     <div class="flex justify-between items-start mb-4">
                         <div class="text-xs text-gray-400 font-mono">${end}</div>
                         <div class="flex gap-2">
                             <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">${dept}</span>
-                            <span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold">${status}</span>
+                            <span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold">${statusHeb}</span>
                         </div>
                     </div>
                     <h3 class="text-xl font-bold text-gray-800 mb-2 text-right">${name}</h3>
@@ -374,9 +440,9 @@
             }).join('');
         }
 
-        // ================= CALENDAR LOGIC (V61) =================
+        // ================= CALENDAR LOGIC (V66) =================
         function openCalendarModal() {
-            currentCalDate = new Date(); // Reset to today
+            currentCalDate = new Date();
             renderCalendar();
             document.getElementById('calendarModal').classList.remove('hidden');
             document.getElementById('calendarModal').classList.add('flex');
@@ -392,7 +458,6 @@
             const month = currentCalDate.getMonth();
             const filter = document.getElementById('calDeptFilter').value;
 
-            // Header Date
             document.getElementById('calMonthYear').innerText = currentCalDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
 
             const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
@@ -400,48 +465,74 @@
             const container = document.getElementById('calendarBody');
             container.innerHTML = '';
 
-            // Blank cells for previous month
             for (let i = 0; i < firstDay; i++) {
                 container.innerHTML += `<div class="calendar-day other-month"></div>`;
             }
 
-            // Days
+            const relevantProjects = projectsData.filter(p => {
+                if (filter !== 'all' && p.department !== filter) return false;
+                if (!p.startDate || !p.endDate) return false;
+                const pStart = new Date(p.startDate);
+                const pEnd = new Date(p.endDate);
+                const monthStart = new Date(year, month, 1);
+                const monthEnd = new Date(year, month + 1, 0);
+                return pStart <= monthEnd && pEnd >= monthStart;
+            }).sort((a,b) => new Date(a.startDate) - new Date(b.startDate));
+
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
                 const checkDate = new Date(year, month, day);
                 const isToday = new Date().toDateString() === checkDate.toDateString();
                 
-                let dayHTML = `<div class="calendar-day ${isToday ? 'today' : ''}">
-                    <span class="day-number">${day}</span>`;
-
-                // Find projects for this day
-                // Logic: show if date is between start and end (inclusive)
-                projectsData.forEach(p => {
-                    if (filter !== 'all' && p.department !== filter) return;
-                    if (!p.startDate || !p.endDate) return;
-
+                let dayHTML = `<div class="calendar-day ${isToday ? 'today' : ''}"><span class="day-number">${day}</span><div class="event-bar-container">`;
+                
+                relevantProjects.forEach(p => {
                     const pStart = new Date(p.startDate);
                     const pEnd = new Date(p.endDate);
                     
-                    // Simple check: is this day inside range?
                     if (checkDate >= pStart && checkDate <= pEnd) {
                         let statusClass = 'cal-active';
-                        if (p.status === 'planned') statusClass = 'cal-planned';
+                        if (p.status === 'מתוכנן' || p.status === 'planned') statusClass = 'cal-planned';
                         if (p.status === 'הושלם') statusClass = 'cal-done';
                         if (p.status === 'עצור') statusClass = 'cal-blocked';
 
-                        dayHTML += `<div onclick="openProjectModal('${p.id}')" class="cal-event ${statusClass}" title="${p.name}">
-                            ${p.name}
+                        let shapeClass = 'is-middle';
+                        if (checkDate.getTime() === pStart.getTime()) shapeClass = 'is-start';
+                        if (checkDate.getTime() === pEnd.getTime()) shapeClass = 'is-end';
+                        if (pStart.getTime() === pEnd.getTime()) shapeClass = 'rounded-md mx-0.5'; 
+
+                        const isSunday = checkDate.getDay() === 0;
+                        const isFirstDayOfMonth = day === 1;
+                        const isProjectStart = checkDate.getTime() === pStart.getTime();
+                        
+                        let label = '&nbsp;';
+                        if (isProjectStart || isSunday || isFirstDayOfMonth) {
+                            label = p.name;
+                        }
+
+                        dayHTML += `<div onclick="openProjectModal('${p.id}')" class="cal-event-segment ${statusClass} ${shapeClass}" title="${p.name}">
+                            ${label}
                         </div>`;
                     }
                 });
 
-                dayHTML += `</div>`;
+                // Render Tasks with Blue dots (linked style)
+                relevantProjects.forEach(p => {
+                    if (p.tasks) {
+                        p.tasks.forEach(t => {
+                            if (t.date && t.date === dateStr) {
+                                dayHTML += `<div class="task-marker" title="${t.text} (${p.name})"><span class="task-dot"></span>${t.text}</div>`;
+                            }
+                        });
+                    }
+                });
+
+                dayHTML += `</div></div>`;
                 container.innerHTML += dayHTML;
             }
         }
 
-        // VIEW & RENDER (Simple switch for main list)
+        // VIEW & RENDER
         function switchView(view) {
             const btnGrid = document.getElementById('viewBtnList');
             const btnKanban = document.getElementById('viewBtnKanban');
@@ -455,11 +546,11 @@
                 btnKanban.classList.add('bg-white', 'shadow', 'text-gray-800'); btnKanban.classList.remove('text-gray-500');
                 btnGrid.classList.remove('bg-white', 'shadow', 'text-gray-800'); btnGrid.classList.add('text-gray-500');
                 
-                const filtered = projectsData; // Should use same filter logic as renderGrid
+                const filtered = projectsData; 
                 const cols = ['מתוכנן', 'בתהליך', 'הושלם', 'עצור'].map(k => {
                     const items = filtered.filter(p => (p.status === k) || (k==='מתוכנן' && p.status==='planned'));
-                    return `<div class="bg-gray-50 p-4 rounded-2xl min-w-[280px] h-fit border border-gray-200"><h3 class="font-bold text-gray-700 mb-4 px-1">${k} <span class="bg-white text-gray-600 text-xs px-2 rounded border">${items.length}</span></h3><div class="space-y-3">${items.map(p => 
-                        `<div onclick="openProjectModal('${p.id}')" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md"><h4 class="font-bold text-sm text-gray-800">${p.name}</h4><div class="text-xs text-gray-500 mt-1">${p.department || ''}</div></div>`
+                    return `<div class="bg-gray-50 p-4 rounded-2xl min-w-[280px] h-fit border border-gray-200"><h3 class="font-bold text-gray-700 mb-4 px-1 text-right">${k} <span class="bg-white text-gray-600 text-xs px-2 rounded border">${items.length}</span></h3><div class="space-y-3">${items.map(p => 
+                        `<div onclick="openProjectModal('${p.id}')" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md"><h4 class="font-bold text-sm text-gray-800 text-right">${p.name}</h4><div class="text-xs text-gray-500 mt-1 text-right">${p.department || ''}</div></div>`
                     ).join('')}</div></div>`;
                 }).join('');
                 container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto pb-4">${cols}</div>`;
@@ -468,21 +559,13 @@
 
         // DASHBOARD
         function openDashboard() {
-            let totalBudget = 0;
-            let activeCount = 0;
-            let deptBudget = {};
-            let statusCount = {};
-
+            let totalBudget = 0; let activeCount = 0; let deptBudget = {}; let statusCount = {};
             projectsData.forEach(p => {
-                const b = parseInt(p.budget || 0);
-                totalBudget += b;
-                const s = p.status || 'other';
-                if(s === 'בתהליך') activeCount++;
+                const b = parseInt(p.budget || 0); totalBudget += b;
+                const s = p.status || 'other'; if(s === 'בתהליך') activeCount++;
                 statusCount[s] = (statusCount[s] || 0) + 1;
-                const d = p.department || 'כללי';
-                deptBudget[d] = (deptBudget[d] || 0) + b;
+                const d = p.department || 'כללי'; deptBudget[d] = (deptBudget[d] || 0) + b;
             });
-
             document.getElementById('dashTotalBudget').innerText = '₪' + totalBudget.toLocaleString();
             document.getElementById('dashTotalProjects').innerText = projectsData.length;
             document.getElementById('dashActiveProjects').innerText = activeCount;
@@ -517,12 +600,17 @@
             document.getElementById('mBudget').value = p.budget || '';
             document.getElementById('mStart').value = p.startDate || '';
             document.getElementById('mEnd').value = p.endDate || '';
-            document.getElementById('mStatus').value = p.status || 'planned';
+            
+            let cleanStatus = p.status;
+            if(cleanStatus === 'planned') cleanStatus = 'מתוכנן';
+            document.getElementById('mStatus').value = cleanStatus;
+            
             document.getElementById('mManager').value = p.manager || '';
             document.getElementById('mDesc').value = p.description || '';
             document.getElementById('mTeam').value = p.team || '';
 
             renderLists();
+            renderInternalGantt();
             switchTab('overview');
             document.getElementById('projectModal').classList.remove('hidden');
             document.getElementById('projectModal').classList.add('flex');
@@ -547,16 +635,12 @@
                 <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-1">
                     <div class="flex items-center gap-2">
                         <button onclick="deleteTask(${i})" class="text-gray-300 hover:text-red-500"><i class="fas fa-times"></i></button>
-                        <span class="${t.done ? 'line-through text-gray-400' : ''} text-sm">${t.text}</span>
+                        <div class="flex flex-col text-right">
+                            <span class="${t.done ? 'line-through text-gray-400' : ''} text-sm font-bold">${t.text}</span>
+                            <span class="text-xs text-gray-400">${t.date ? 'יעד: ' + t.date : ''}</span>
+                        </div>
                     </div>
                     <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})" class="cursor-pointer">
-                </div>`).join('');
-
-            const ms = currentProject.milestones || [];
-            document.getElementById('milestonesList').innerHTML = ms.map(m => `
-                <div class="flex justify-between items-center border-b border-gray-50 pb-2">
-                    <div class="text-xs text-gray-500">${m.date}</div>
-                    <div class="font-bold text-gray-700 text-sm">${m.title}</div>
                 </div>`).join('');
 
             const acts = currentProject.activity || [];
@@ -569,6 +653,15 @@
                     </div>
                     <div class="text-sm text-gray-700 text-right">${a.text}</div>
                 </div>`).join('');
+        }
+
+        function renderInternalGantt() {
+            const container = document.getElementById('ganttChartContainer');
+            if(!currentProject.startDate || !currentProject.endDate) { container.innerHTML = '<div class="text-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed flex flex-col items-center gap-2"><span>נא להגדיר תאריכים ב"סקירה" להצגת ציר זמן</span></div>'; return; }
+            const start = new Date(currentProject.startDate); const end = new Date(currentProject.endDate); const totalMs = end - start; const now = new Date();
+            let percentPassed = 0; if(now > start) percentPassed = Math.min(100, ((now - start) / totalMs) * 100); if(totalMs <= 0) percentPassed = 0;
+            const sStr = start.toLocaleDateString('he-IL'); const eStr = end.toLocaleDateString('he-IL');
+            container.innerHTML = `<div class="relative pt-8 pb-4"><div class="flex justify-between text-xs text-gray-500 mb-2 font-mono px-1"><span><i class="far fa-play-circle"></i> ${sStr}</span><span><i class="far fa-flag"></i> ${eStr}</span></div><div class="gantt-track"><div class="absolute top-0 bottom-0 right-0 bg-blue-100 border-l border-blue-200" style="width: ${percentPassed}%"></div><div class="gantt-bar absolute top-1 bottom-1 right-1" style="width: ${currentProject.progress || 0}%"><span class="absolute left-2 text-white font-bold text-xs drop-shadow-md top-1/2 -translate-y-1/2">${currentProject.progress}%</span></div></div></div>`;
         }
 
         // CRUD
@@ -600,10 +693,12 @@
 
         function addTask() {
             const txt = document.getElementById('newTaskInput').value;
+            const date = document.getElementById('newTaskDate').value;
             if(!txt) return;
-            const newTasks = [...(currentProject.tasks || []), { text: txt, done: false }];
+            const newTasks = [...(currentProject.tasks || []), { text: txt, date: date, done: false }];
             db.collection('projects').doc(currentProject.id).update({ tasks: newTasks });
             document.getElementById('newTaskInput').value = '';
+            document.getElementById('newTaskDate').value = '';
         }
         function toggleTask(i) {
             const tasks = [...currentProject.tasks]; tasks[i].done = !tasks[i].done;
@@ -613,14 +708,7 @@
             const tasks = [...currentProject.tasks]; tasks.splice(i, 1);
             db.collection('projects').doc(currentProject.id).update({ tasks: tasks });
         }
-        function addMilestone() {
-            const t = document.getElementById('newMileText').value;
-            const d = document.getElementById('newMileDate').value;
-            if(!t) return;
-            const newMs = [...(currentProject.milestones || []), { title: t, date: d }];
-            db.collection('projects').doc(currentProject.id).update({ milestones: newMs });
-            document.getElementById('newMileText').value = '';
-        }
+        
         function addActivity() {
             const t = document.getElementById('newActivityInput').value;
             if(!t) return;
@@ -642,7 +730,7 @@
             const dept = document.getElementById('npDept').value;
             if(!name) return alert('חובה להזין שם');
             db.collection('projects').add({
-                name: name, department: dept, status: 'planned', progress: 0, risk: 'low',
+                name: name, department: dept, status: 'מתוכנן', progress: 0, risk: 'low',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => { closeNewProjectModal(); });
         }
