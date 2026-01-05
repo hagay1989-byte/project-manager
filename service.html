@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Desk V45 - Resolution & Save</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <style>
+        body { font-family: 'Heebo', sans-serif; background-color: #f0f2f5; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-header { background: #ffffff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scaleUp { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-modal { animation: scaleUp 0.15s ease-out forwards; }
+
+        .status-badge { padding: 4px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+        .urgency-badge { padding: 2px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ticket-card-image { height: 130px; object-fit: cover; width: 100%; border-top-left-radius: 1rem; border-top-right-radius: 1rem; }
+        
+        .tab-btn { border-bottom: 3px solid transparent; color: #6b7280; padding: 12px 20px; transition: all 0.2s; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .tab-btn:hover { color: #dc2626; background-color: #fef2f2; }
+        .tab-btn.active { border-bottom-color: #dc2626; color: #dc2626; background-color: #fff; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm z-50">
+        <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md text-center">
+            <h2 id="authTitle" class="text-3xl font-bold mb-8 text-gray-800">כניסה למערכת התקלות</h2>
+            <div id="authError" class="hidden bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg mb-4 text-sm"></div>
+            <div class="space-y-5">
+                <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-3.5 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
+                <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-3.5 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
+                <button id="authBtn" onclick="handleAuthAction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95">התחבר</button>
+            </div>
+            <div class="mt-6 text-center text-sm">
+                <span id="authToggleText" class="text-gray-500">אין לך חשבון? </span>
+                <button onclick="toggleAuthMode()" id="authToggleLink" class="text-blue-600 font-bold hover:underline cursor-pointer">הירשם כאן</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" class="hidden flex-col h-full w-full">
+        <header class="glass-header z-30 flex-shrink-0">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <div class="flex items-center gap-4 w-full md:w-auto">
+                        <div class="bg-red-600 text-white p-2.5 rounded-xl shadow-md"><i class="fas fa-tools text-xl"></i></div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900 leading-none">מוקד תקלות</h1>
+                            <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
+                        </div>
+                        <a href="index.html" class="mr-4 text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition"><i class="fas fa-arrow-right"></i> מעבר לפרויקטים</a>
+                    </div>
+
+                    <div class="flex gap-2 items-center flex-wrap justify-center md:justify-end w-full md:w-auto">
+                        <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hidden sm:block"></span>
+                        <div id="adminBadge" class="hidden bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded border border-red-200">מנהל</div>
+                        
+                        <button onclick="openNewTicketModal()" class="bg-red-600 hover:bg-red-700 text-white px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
+                            <i class="fas fa-plus-circle"></i> תקלה חדשה
+                        </button>
+                        
+                        <button onclick="auth.signOut()" class="text-gray-400 hover:text-red-500 p-2 transition bg-gray-50 rounded-lg hover:bg-red-50"><i class="fas fa-sign-out-alt text-lg"></i></button>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <div class="text-lg font-bold text-gray-700 flex items-center gap-2"><i class="fas fa-clipboard-list text-red-500"></i> רשימת קריאות</div>
+                    <div class="flex gap-3">
+                        <select id="filterTicketDept" onchange="renderTickets()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none shadow-sm cursor-pointer">
+                            <option value="all">כל המחלקות</option>
+                        </select>
+                        <select id="filterTicketStatus" onchange="renderTickets()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none shadow-sm cursor-pointer">
+                            <option value="all">כל הסטטוסים</option>
+                            <option value="open" selected>פתוחות בלבד</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="mainContent" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8 overflow-y-auto custom-scrollbar">
+            <div id="ticketsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </main>
+    </div>
+
+    <div id="fullTicketModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-40 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-modal">
+            
+            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div id="modalTicketStatusIcon" class="text-2xl"></div>
+                    <div>
+                        <h2 id="modalTicketTitle" class="text-xl font-bold text-gray-800 tracking-tight"></h2>
+                        <div class="flex items-center gap-2 mt-1 text-sm text-gray-500">
+                            <span id="modalTicketSub"></span>
+                            <span class="text-gray-300">|</span>
+                            <span id="modalTicketDeptBadge" class="bg-gray-100 px-2 py-0.5 rounded text-xs font-bold text-gray-600"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 items-center">
+                    <span id="modalTicketUrgencyBadge"></span>
+                    
+                    <select id="editTicketStatus" class="bg-white border border-gray-200 text-sm rounded-lg px-3 py-1.5 outline-none cursor-pointer hover:border-blue-300 font-bold text-gray-700 hidden"></select>
+                    
+                    <button onclick="saveTicketChanges()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-sm font-bold shadow-md transition flex items-center gap-2">
+                        <i class="fas fa-save"></i> שמור שינויים
+                    </button>
+                    
+                    <button onclick="closeFullTicketModal()" class="text-gray-400 hover:text-gray-600 p-2 transition ml-2"><i class="fas fa-times text-xl"></i></button>
+                </div>
+            </div>
+
+            <div class="flex border-b border-gray-100 px-6 bg-white gap-2 flex-shrink-0">
+                <div onclick="switchTicketTab('details')" id="tab-ticket-details" class="tab-btn active"><i class="far fa-file-alt"></i> פרטים</div>
+                <div onclick="switchTicketTab('tasks')" id="tab-ticket-tasks" class="tab-btn"><i class="fas fa-tasks"></i> משימות וזמנים</div>
+                <div onclick="switchTicketTab('activity')" id="tab-ticket-activity" class="tab-btn"><i class="far fa-comments"></i> פעילות</div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto bg-gray-50 custom-scrollbar relative p-6">
+                
+                <div id="content-ticket-details" class="tab-content active space-y-6">
+                    
+                    <div class="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm ring-1 ring-blue-50">
+                        <h3 class="font-bold text-gray-800 mb-2 text-sm flex items-center gap-2">
+                            <i class="fas fa-check-double text-blue-500"></i> פירוט ביצוע / סיכום טיפול
+                        </h3>
+                        <textarea id="ticketResolution" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-blue-400 transition" rows="3" placeholder="תאר מה בוצע בתקלה... (חובה לפני סגירה)"></textarea>
+                        <div id="closedByBadge" class="hidden mt-2 text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded inline-block border border-green-100"></div>
+                    </div>
+
+                    <div id="modalMainImageContainer" class="hidden relative bg-gray-200 h-64 w-full rounded-2xl overflow-hidden shadow-sm border border-gray-200 group">
+                        <img id="modalMainImage" src="" class="w-full h-full object-contain bg-gray-100 cursor-pointer" onclick="window.open(this.src)">
+                        <div class="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-white text-xs text-center opacity-0 group-hover:opacity-100 transition">לחץ להגדלה</div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wide text-gray-400">תיאור התקלה המקורי</h3>
+                        <p id="modalTicketDesc" class="text-gray-700 whitespace-pre-wrap leading-relaxed text-base"></p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide text-gray-400">מידע נוסף</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div><span class="text-gray-400 block text-xs">סוג:</span><span id="modalTicketType" class="font-bold text-gray-700"></span></div>
+                            <div><span class="text-gray-400 block text-xs">מדווח:</span><span id="modalTicketReporter" class="font-bold text-gray-700"></span></div>
+                            <div><span class="text-gray-400 block text-xs">מטפל:</span><span id="modalTicketAssignee" class="font-bold text-blue-600"></span></div>
+                            <div><span class="text-gray-400 block text-xs">נפתח ב:</span><span id="modalTicketDate" class="font-mono text-gray-700"></span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="content-ticket-tasks" class="tab-content space-y-6">
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+                        <div>
+                            <div class="text-gray-400 text-xs font-bold uppercase mb-1">משך זמן בטיפול</div>
+                            <div id="ticketElapsedTime" class="text-3xl font-black text-gray-800 tracking-tight">0 ימים</div>
+                            <div class="text-xs text-gray-400 mt-1">מאז הפתיחה</div>
+                        </div>
+                        <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 text-2xl">
+                            <i class="fas fa-stopwatch"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-list-check text-blue-500"></i> רשימת משימות / צ'ק ליסט</h3>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="newSubTaskInput" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-blue-400 transition" placeholder="הוסף משימה חדשה..." onkeypress="if(event.key === 'Enter') addTicketTask()">
+                            <button onclick="addTicketTask()" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-blue-700 transition">הוסף</button>
+                        </div>
+                        <div id="ticketTasksList" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <div id="content-ticket-activity" class="tab-content">
+                    <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm mb-4">
+                        <textarea id="newNoteText" class="w-full bg-gray-50 border-none rounded-xl p-3 text-sm mb-2 outline-none" rows="2" placeholder="הוסף תגובה או עדכון..."></textarea>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(this)">
+                                <button onclick="document.getElementById('fileInput').click()" class="text-gray-500 hover:text-blue-600 p-2 rounded-lg hover:bg-gray-100 transition flex items-center gap-2 text-sm"><i class="fas fa-paperclip"></i> צרף קובץ</button>
+                                <span id="fileNameDisplay" class="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded hidden"></span>
+                            </div>
+                            <button onclick="addActivityNote()" class="bg-blue-600 text-white px-5 py-1.5 rounded-lg text-sm font-bold">שלח</button>
+                        </div>
+                    </div>
+                    <div id="activityFeed" class="space-y-3 pb-4"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="newTicketModal" class="fixed inset-0 bg-gray-900 bg-opacity-70 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-xl flex flex-col shadow-2xl animate-modal">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-2xl bg-red-50"><h3 class="text-xl font-bold text-red-800 flex items-center gap-2"><i class="fas fa-plus-circle"></i> פתיחת תקלה חדשה</h3><button onclick="closeNewTicketModal()" class="bg-white hover:bg-red-100 p-2 rounded-lg transition text-red-500"><i class="fas fa-times"></i></button></div>
+            <div class="p-6 overflow-y-auto space-y-5 custom-scrollbar">
+                
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">תמונה מהשטח (חובה)</label>
+                    <div class="flex items-center justify-center w-full">
+                        <label for="ntImageInput" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition relative overflow-hidden group">
+                            <div id="imagePreviewContainer" class="hidden w-full h-full absolute inset-0">
+                                <img id="imagePreview" src="" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition">
+                            </div>
+                            <div id="uploadPlaceholder" class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <i class="fas fa-camera text-3xl text-gray-400 mb-2"></i>
+                                <p class="text-sm text-gray-500">לחץ להוספת תמונה</p>
+                            </div>
+                            <input id="ntImageInput" type="file" class="hidden" accept="image/*" onchange="handleNewTicketImageSelect(this)" />
+                        </label>
+                    </div>
+                </div>
+
+                <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">נושא התקלה *</label><input id="ntTitle" class="w-full border border-gray-200 rounded-xl p-3 outline-none focus:border-red-400 transition" placeholder="למשל: נזילה במטבחון"></div>
+                <div class="grid grid-cols-2 gap-5">
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">מיקום *</label><select id="ntSite" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-red-400 transition"></select></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">מחלקה</label><select id="ntDept" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-red-400 transition"></select></div>
+                    
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">סוג טיפול</label><select id="ntType" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-red-400 transition"><option value="general">כללי</option><option value="electric">חשמל</option><option value="plumbing">אינסטלציה</option><option value="hvac">מיזוג אוויר</option><option value="safety">בטיחות</option><option value="cleaning">ניקיון</option></select></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">דחיפות</label>
+                        <select id="ntUrgency" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-red-400 transition font-bold">
+                            <option value="low">🟢 נמוכה</option>
+                            <option value="normal" selected>🔵 רגילה</option>
+                            <option value="high">🟠 דחופה</option>
+                            <option value="critical">🔴 בהולה</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">תיאור מפורט *</label><textarea id="ntDesc" class="w-full border border-gray-200 rounded-xl p-3 outline-none resize-none focus:border-red-400 transition" rows="3" placeholder="תאר את הבעיה..."></textarea></div>
+                    <div class="col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">שיוך למטפל (אופציונלי)</label><select id="ntAssignee" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-red-400 transition"><option value="">-- בחר מטפל --</option></select></div>
+                </div>
+            </div>
+            <div class="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3"><button onclick="closeNewTicketModal()" class="px-6 py-2.5 border rounded-xl hover:bg-gray-100 transition font-medium">ביטול</button><button onclick="createNewTicket()" class="px-8 py-2.5 bg-red-600 text-white rounded-xl font-bold shadow-md hover:bg-red-700 transition flex items-center gap-2"><i class="fas fa-paper-plane"></i> פתח קריאה</button></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyB7U5xw_FMThsmM2hNMRnkdMYnD2cutH2s",
+            authDomain: "project-manager-4702c.firebaseapp.com",
+            databaseURL: "https://project-manager-4702c-default-rtdb.firebaseio.com",
+            projectId: "project-manager-4702c",
+            storageBucket: "project-manager-4702c.firebasestorage.app",
+            messagingSenderId: "941533299304",
+            appId: "1:941533299304:web:92f8940e93a96b1f8b71dd",
+            measurementId: "G-NZHPST88NC"
+        };
+
+        (function() { emailjs.init("lVJCS9f5i8YqFTNyK"); })();
+
+        const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; 
+        const TEAM_DIRECTORY = {
+            'ולרי': 'valery@herzliya-marina.co.il', 'חגית': 'hagits@herzliya-marina.co.il', 'רונית': 'ronit@herzliya-marina.co.il', 'יפית': 'office@herzliya-marina.co.il', 'זאנה': 'zana@herzliya-marina.co.il', 'חגי': 'hagay@herzliya-marina.co.il', 'עירא': 'iralif@herzliya-marina.co.il', 'ירדן': 'yarden.ak@herzliya-marina.co.il', 'מיכאלה': 'michaela@herzliya-marina.co.il', 'מעיין': 'maayans@herzliya-marina.co.il', 'אלכס': 'alexf@herzliya-marina.co.il',
+            'אלי קירור': 'eli@ac-cool.co.il', 'יוסי חשמל': 'yossi@electric.com'
+        };
+        const CONTRACTORS_EMAILS = ['eli@ac-cool.co.il', 'yossi@electric.com'];
+        const SITES = ['מבנה מנהלה', 'מבנה מספנה', 'חוף הים', 'שובר גלים', 'אירועים', 'רציפים'];
+        const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים'];
+        
+        const TICKET_STATUSES = {
+            'new': {label:'חדש', color:'bg-red-100 text-red-700', icon:'fa-exclamation-circle'},
+            'assigned': {label:'בטיפול', color:'bg-orange-100 text-orange-700', icon:'fa-tools'},
+            'quote_pending': {label:'הצעת מחיר', color:'bg-blue-100 text-blue-700', icon:'fa-file-invoice-dollar'},
+            'order_pending': {label:'הזמנת עבודה', color:'bg-purple-100 text-purple-700', icon:'fa-file-signature'},
+            'parts_pending': {label:'ממתין לחלקים', color:'bg-amber-100 text-amber-700', icon:'fa-box-open'},
+            'done': {label:'טופל', color:'bg-green-100 text-green-700', icon:'fa-check-circle'}
+        };
+        const TICKET_URGENCY = {
+            'low': {label:'נמוכה', color:'bg-green-100 text-green-800 border-green-200'},
+            'normal': {label:'רגילה', color:'bg-blue-50 text-blue-800 border-blue-100'},
+            'high': {label:'דחופה', color:'bg-orange-100 text-orange-800 border-orange-200'},
+            'critical': {label:'בהולה', color:'bg-red-100 text-red-800 border-red-200 animate-pulse'}
+        };
+        const TICKET_TYPES = {'general':'כללי','electric':'חשמל','plumbing':'אינסטלציה','hvac':'מיזוג אוויר','safety':'בטיחות','cleaning':'ניקיון'};
+
+        function safeGet(id) { return document.getElementById(id); }
+        function safeVal(id, val) { const el = document.getElementById(id); if(el) { if(val!==undefined) el.value = val; return el.value; } return ''; }
+        function safeText(id, text) { const el = document.getElementById(id); if(el) el.textContent = text; }
+        function safeHTML(id, html) { const el = document.getElementById(id); if(el) el.innerHTML = html; }
+        function safeAddClass(id, cls) { const el = document.getElementById(id); if(el) el.classList.add(cls); }
+        function safeRemoveClass(id, cls) { const el = document.getElementById(id); if(el) el.classList.remove(cls); }
+        function getHebrewName(email) { if(!email) return 'לא ידוע'; const foundName = Object.keys(TEAM_DIRECTORY).find(key => TEAM_DIRECTORY[key] === email); return foundName || email.split('@')[0]; }
+
+        document.addEventListener('DOMContentLoaded', () => { try { fillDropdowns(); } catch(e) { console.error("Error init lists:", e); } });
+
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let ticketsData = [];
+        let currentEditingTicket = null;
+        let selectedFile = null;
+        let newTicketImageBase64 = null;
+        let isLoginMode = true;
+
+        // AUTH
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            const title = safeGet('authTitle'); const btn = safeGet('authBtn');
+            const toggleText = safeGet('authToggleText'); const toggleLink = safeGet('authToggleLink');
+            const errorDiv = safeGet('authError');
+            if(errorDiv) errorDiv.classList.add('hidden');
+            if (isLoginMode) { title.innerText = "כניסה למערכת התקלות"; btn.innerText = "התחבר"; toggleText.innerText = "אין לך חשבון? "; toggleLink.innerText = "הירשם כאן"; }
+            else { title.innerText = "הרשמה למערכת"; btn.innerText = "הירשם"; toggleText.innerText = "יש לך כבר חשבון? "; toggleLink.innerText = "התחבר כאן"; }
+        }
+        function handleAuthAction() {
+            const e = safeVal('emailInput').toLowerCase().trim(); 
+            const p = safeVal('passInput');
+            if(!e || !p) { alert('נא למלא אימייל וסיסמה'); return; }
+
+            const allowedEmails = [...ADMIN_EMAILS, ...Object.values(TEAM_DIRECTORY)].map(email => email.toLowerCase().trim());
+            if (!allowedEmails.includes(e)) {
+                safeText('authError', 'גישה נדחתה: המייל אינו מופיע ברשימת המורשים.');
+                safeRemoveClass('authError', 'hidden');
+                return; 
+            }
+
+            const action = isLoginMode ? auth.signInWithEmailAndPassword(e, p) : auth.createUserWithEmailAndPassword(e, p);
+            action.then(() => { 
+                safeGet('emailInput').value = ''; 
+                safeGet('passInput').value = ''; 
+                safeAddClass('authError', 'hidden');
+            }).catch(err => {
+                safeText('authError', err.message); safeRemoveClass('authError', 'hidden');
+            });
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                safeAddClass('loginScreen', 'hidden'); safeRemoveClass('app', 'hidden'); safeAddClass('app', 'flex');
+                safeText('userEmailDisplay', getHebrewName(user.email));
+                const isAdmin = ADMIN_EMAILS.includes(user.email);
+                if(isAdmin) safeRemoveClass('adminBadge', 'hidden'); else safeAddClass('adminBadge', 'hidden');
+                initApp();
+            } else {
+                safeRemoveClass('loginScreen', 'hidden'); safeAddClass('app', 'hidden'); safeRemoveClass('app', 'flex');
+            }
+        });
+
+        // INIT DATA
+        function initApp() {
+            const userEmail = currentUser.email;
+            const isContractor = CONTRACTORS_EMAILS.includes(userEmail);
+
+            db.collection('service_tickets').onSnapshot(snap => {
+                const allTickets = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                if (isContractor) {
+                    ticketsData = allTickets.filter(t => t.assignee === userEmail);
+                } else {
+                    ticketsData = allTickets;
+                }
+                
+                const urgencyOrder = { 'critical': 4, 'high': 3, 'normal': 2, 'low': 1 };
+                ticketsData.sort((a,b) => {
+                    const diff = (urgencyOrder[b.urgency] || 2) - (urgencyOrder[a.urgency] || 2);
+                    if (diff !== 0) return diff;
+                    return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+                });
+
+                renderTickets();
+
+                if (currentEditingTicket) {
+                    const updated = ticketsData.find(t => t.id === currentEditingTicket.id);
+                    if(updated) { currentEditingTicket = updated; refreshTicketModalUI(); }
+                }
+            });
+        }
+
+        function fillDropdowns() {
+            const populate = (id, list) => { const el = document.getElementById(id); if(el) el.innerHTML = list.map(i => `<option value="${i}">${i}</option>`).join(''); };
+            const names = Object.keys(TEAM_DIRECTORY);
+            if(safeGet('ntSite')) {
+                populate('ntSite', SITES);
+                populate('ntDept', DEPARTMENTS); // Populate Departments in Modal
+                const assigneeSelect = safeGet('ntAssignee');
+                assigneeSelect.innerHTML = '<option value="">-- בחר מטפל (אופציונלי) --</option>' + names.map(i => `<option value="${i}">${i}</option>`).join('');
+                
+                const filterDept = safeGet('filterTicketDept');
+                if(filterDept) {
+                    filterDept.innerHTML = '<option value="all">כל המחלקות</option>' + DEPARTMENTS.map(d => `<option value="${d}">${d}</option>`).join('');
+                }
+            }
+            const statusSelect = safeGet('editTicketStatus');
+            if(statusSelect) {
+                statusSelect.innerHTML = Object.keys(TICKET_STATUSES).map(k => `<option value="${k}">${TICKET_STATUSES[k].label}</option>`).join('');
+            }
+        }
+
+        // ================= SERVICE DESK LOGIC =================
+        function openNewTicketModal() {
+            safeVal('ntTitle', ''); safeVal('ntDesc', ''); safeVal('ntAssignee', ''); safeVal('ntUrgency', 'normal');
+            safeVal('ntImageInput', ''); 
+            safeAddClass('imagePreviewContainer', 'hidden'); safeRemoveClass('uploadPlaceholder', 'hidden');
+            newTicketImageBase64 = null;
+            safeRemoveClass('newTicketModal', 'hidden'); safeAddClass('newTicketModal', 'flex');
+        }
+
+        function closeNewTicketModal() {
+            safeRemoveClass('newTicketModal', 'flex'); safeAddClass('newTicketModal', 'hidden');
+        }
+
+        function handleNewTicketImageSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (file.size > 2 * 1024 * 1024) { alert("התמונה גדולה מדי (מקסימום 2MB)"); input.value = ''; return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    newTicketImageBase64 = e.target.result;
+                    safeGet('imagePreview').src = newTicketImageBase64;
+                    safeRemoveClass('imagePreviewContainer', 'hidden');
+                    safeAddClass('uploadPlaceholder', 'hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function createNewTicket() {
+            const title = safeVal('ntTitle'); const site = safeVal('ntSite'); const desc = safeVal('ntDesc');
+            const assigneeName = safeVal('ntAssignee'); const urgency = safeVal('ntUrgency');
+            const dept = safeVal('ntDept');
+            
+            if(!title) return alert('חובה להזין נושא לתקלה');
+            if(!desc) return alert('חובה להזין תיאור מפורט');
+
+            const assigneeEmail = assigneeName ? TEAM_DIRECTORY[assigneeName] : null;
+
+            const newTicket = {
+                title: title, site: site, department: dept, urgency: urgency, description: desc,
+                status: assigneeEmail ? 'assigned' : 'new', 
+                reporter: currentUser.email, assignee: assigneeEmail,
+                image: newTicketImageBase64, 
+                checklist: [], 
+                activities: [],
+                resolution: '', // New Field
+                closedBy: null, // New Field
+                closedAt: null, // New Field
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection('service_tickets').add(newTicket).then(() => {
+                if (assigneeEmail) sendAssignmentEmail(assigneeEmail, title, site, desc, assigneeName);
+                alert('הקריאה נפתחה בהצלחה!'); closeNewTicketModal();
+            }).catch(e => alert("שגיאה: " + e.message));
+        }
+
+        function sendAssignmentEmail(toEmail, title, site, desc, toName) {
+            emailjs.send("service_bk3qnf8", "template_8xea4xt", {
+                to_email: toEmail, email_title: `קריאת שירות חדשה: ${title}`,
+                email_message: `נפתחה קריאת שירות חדשה במיקום: ${site}.\nתיאור: ${desc}`,
+                project_name: title, owner_name: toName, department: "מוקד תקלות"
+            });
+        }
+
+        function renderTickets() {
+            const container = safeGet('ticketsContainer'); if(!container) return;
+            const filterStatus = safeVal('filterTicketStatus');
+            const filterDept = safeVal('filterTicketDept');
+            
+            let filtered = ticketsData;
+            
+            if (filterStatus === 'open') filtered = filtered.filter(t => t.status !== 'done');
+            else if (filterStatus !== 'all') filtered = filtered.filter(t => t.status === filterStatus);
+            
+            if (filterDept !== 'all') filtered = filtered.filter(t => t.department === filterDept);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200"><i class="fas fa-check-circle text-5xl mb-4 text-green-100"></i><p class="text-xl font-medium text-gray-500">אין קריאות שירות להצגה</p><p class="text-sm mt-2">הכל טופל! או שלא נבחרו קריאות בסינון.</p></div>`;
+                return;
+            }
+            container.innerHTML = filtered.map(t => createTicketCardHTML(t)).join('');
+        }
+
+        function createTicketCardHTML(t) {
+            const s = TICKET_STATUSES[t.status] || TICKET_STATUSES['new'];
+            const u = TICKET_URGENCY[t.urgency] || TICKET_URGENCY['normal'];
+            const reporterName = getHebrewName(t.reporter);
+            const assigneeName = getHebrewName(t.assignee);
+            const imageHTML = t.image ? `<img src="${t.image}" class="ticket-card-image">` : `<div class="ticket-card-image bg-gray-100 flex items-center justify-center text-gray-300"><i class="fas fa-image text-3xl"></i></div>`;
+            const dept = t.department || 'כללי';
+            
+            const elapsedTime = t.createdAt ? getElapsedTime(new Date(t.createdAt.seconds * 1000)) : 'חדש';
+
+            return `
+            <div onclick="openFullTicket('${t.id}')" class="bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-lg transition cursor-pointer relative group flex flex-col overflow-hidden">
+                ${imageHTML}
+                <div class="absolute top-2 right-2 flex gap-1">
+                    <span class="urgency-badge border ${u.color}">${u.label}</span>
+                </div>
+                <div class="p-5 flex-1 flex flex-col">
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="status-badge ${s.color}"><i class="fas ${s.icon}"></i> ${s.label}</span>
+                        <span class="text-xs text-gray-400 font-mono bg-gray-50 px-2 py-1 rounded">${elapsedTime}</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-lg mb-1 line-clamp-2 group-hover:text-red-600 transition">${t.title}</h3>
+                    <div class="text-xs text-gray-500 mb-2 font-medium bg-gray-50 inline-block px-2 py-0.5 rounded">${dept}</div>
+                    <p class="text-sm text-gray-500 flex items-center gap-2 mb-4"><i class="fas fa-map-pin text-red-300"></i> ${t.site}</p>
+                    
+                    <div class="mt-auto flex items-center justify-between text-xs text-gray-500 border-t border-gray-50 pt-3">
+                        <div class="flex items-center gap-1.5"><i class="fas fa-user-tag text-gray-300"></i> ${reporterName}</div>
+                        <div class="flex items-center gap-1.5 font-medium text-gray-700"><i class="fas fa-user-cog text-gray-300"></i> ${t.assignee ? assigneeName : 'טרם שובץ'}</div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+
+        // --- FULL TICKET MODAL & TABS ---
+        function openFullTicket(id) {
+            currentEditingTicket = ticketsData.find(t => t.id === id); if (!currentEditingTicket) return;
+            refreshTicketModalUI();
+            switchTicketTab('details'); 
+            safeRemoveClass('fullTicketModal', 'hidden'); safeAddClass('fullTicketModal', 'flex');
+        }
+
+        function closeFullTicketModal() {
+            safeRemoveClass('fullTicketModal', 'flex'); safeAddClass('fullTicketModal', 'hidden');
+            currentEditingTicket = null;
+        }
+
+        function switchTicketTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            safeAddClass(`tab-ticket-${tabName}`, 'active');
+            safeAddClass(`content-ticket-${tabName}`, 'active');
+        }
+
+        function refreshTicketModalUI() {
+            if(!currentEditingTicket) return;
+            const t = currentEditingTicket;
+            const s = TICKET_STATUSES[t.status];
+            const u = TICKET_URGENCY[t.urgency] || TICKET_URGENCY['normal'];
+            
+            safeHTML('modalTicketStatusIcon', `<span class="${s.color.replace('bg-', 'text-')}"><i class="fas ${s.icon}"></i></span>`);
+            safeText('modalTicketTitle', t.title);
+            safeHTML('modalTicketSub', `<i class="fas fa-map-pin"></i> ${t.site}`);
+            safeText('modalTicketDeptBadge', t.department || 'כללי');
+            safeHTML('modalTicketUrgencyBadge', `<span class="urgency-badge border ${u.color}">${u.label}</span>`);
+
+            const imgContainer = safeGet('modalMainImageContainer');
+            if (t.image) {
+                safeGet('modalMainImage').src = t.image;
+                safeRemoveClass('modalMainImageContainer', 'hidden');
+            } else {
+                safeAddClass('modalMainImageContainer', 'hidden');
+            }
+
+            safeText('modalTicketDesc', t.description);
+            safeVal('ticketResolution', t.resolution || ''); // Set resolution text
+            
+            // Closed By Badge
+            if(t.closedBy) {
+                const closerName = getHebrewName(t.closedBy);
+                const closeDate = t.closedAt ? new Date(t.closedAt).toLocaleDateString('he-IL') : '';
+                safeHTML('closedByBadge', `<i class="fas fa-check"></i> נסגר ע"י ${closerName} ב-${closeDate}`);
+                safeRemoveClass('closedByBadge', 'hidden');
+            } else {
+                safeAddClass('closedByBadge', 'hidden');
+            }
+
+            safeText('modalTicketType', t.type || 'כללי');
+            safeText('modalTicketReporter', getHebrewName(t.reporter));
+            safeText('modalTicketAssignee', t.assignee ? getHebrewName(t.assignee) : 'טרם שובץ');
+            safeText('modalTicketDate', t.createdAt ? new Date(t.createdAt.seconds * 1000).toLocaleString('he-IL') : '-');
+            
+            if (t.createdAt) {
+                safeText('ticketElapsedTime', getElapsedTime(new Date(t.createdAt.seconds * 1000)));
+            }
+
+            renderTicketTasks();
+
+            const canEdit = (ADMIN_EMAILS.includes(currentUser.email) || t.assignee === currentUser.email);
+            const statusSelect = safeGet('editTicketStatus');
+            if (canEdit) {
+                statusSelect.value = t.status;
+                safeRemoveClass('editTicketStatus', 'hidden');
+            } else {
+                safeAddClass('editTicketStatus', 'hidden');
+            }
+
+            renderActivityFeed();
+        }
+
+        // --- NEW SAVE LOGIC (V45) ---
+        function saveTicketChanges() {
+            const newStatus = safeVal('editTicketStatus');
+            const resolution = safeVal('ticketResolution');
+            
+            const updateData = {
+                status: newStatus,
+                resolution: resolution
+            };
+
+            // If status changed to DONE, record who closed it
+            if (newStatus === 'done' && currentEditingTicket.status !== 'done') {
+                updateData.closedBy = currentUser.email;
+                updateData.closedAt = new Date().toISOString();
+            }
+
+            db.collection('service_tickets').doc(currentEditingTicket.id).update(updateData).then(() => {
+                alert('השינויים נשמרו בהצלחה!');
+                closeFullTicketModal();
+            }).catch(e => alert("שגיאה בשמירה: " + e.message));
+        }
+
+        // --- TASKS / CHECKLIST LOGIC ---
+        function renderTicketTasks() {
+            const list = safeGet('ticketTasksList');
+            const tasks = currentEditingTicket.checklist || [];
+            
+            if (tasks.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 text-sm py-4">אין משימות משנה</div>';
+                return;
+            }
+
+            list.innerHTML = tasks.map((task, index) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 group">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTicketTask(${index})" class="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer">
+                        <div class="flex flex-col">
+                            <span class="${task.done ? 'line-through text-gray-400' : 'text-gray-800 font-medium'} text-sm">${task.text}</span>
+                            <span class="text-xs text-gray-400">${task.addedAt ? new Date(task.addedAt).toLocaleDateString('he-IL') : ''}</span>
+                        </div>
+                    </div>
+                    <button onclick="deleteTicketTask(${index})" class="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function addTicketTask() {
+            const input = safeGet('newSubTaskInput');
+            const text = input.value.trim();
+            if (!text) return;
+            const newChecklist = [...(currentEditingTicket.checklist || []), { text: text, done: false, addedAt: new Date().toISOString() }];
+            db.collection('service_tickets').doc(currentEditingTicket.id).update({ checklist: newChecklist });
+            input.value = '';
+        }
+
+        function toggleTicketTask(index) {
+            const newChecklist = [...currentEditingTicket.checklist];
+            newChecklist[index].done = !newChecklist[index].done;
+            db.collection('service_tickets').doc(currentEditingTicket.id).update({ checklist: newChecklist });
+        }
+
+        function deleteTicketTask(index) {
+            const newChecklist = [...currentEditingTicket.checklist];
+            newChecklist.splice(index, 1);
+            db.collection('service_tickets').doc(currentEditingTicket.id).update({ checklist: newChecklist });
+        }
+
+        // --- UTILS ---
+        function getElapsedTime(startDate) {
+            const now = new Date();
+            const diff = now - startDate;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            if (days > 0) return `${days} ימים ו-${hours} שעות`;
+            return `${hours} שעות`;
+        }
+
+        // Removed auto-save updateTicketStatusFromModal function as it's replaced by saveTicketChanges
+
+        function handleFileSelect(input) { if (input.files && input.files[0]) { selectedFile = input.files[0]; if (selectedFile.size > 2*1024*1024) { alert("קובץ גדול מדי (מקסימום 2MB)"); selectedFile = null; return; } const d = safeGet('fileNameDisplay'); if(d) { d.textContent = selectedFile.name; d.classList.remove('hidden'); }}}
+        function addActivityNote() { const txt = safeVal('newNoteText'); if(!txt.trim() && !selectedFile) return; const save = (fileData) => { const activity = { user: currentUser.email, text: txt, date: new Date().toISOString(), file: fileData }; const newActs = [...(currentEditingTicket.activities || []), activity]; db.collection('service_tickets').doc(currentEditingTicket.id).update({ activities: newActs }).then(() => { safeGet('newNoteText').value = ''; safeGet('fileNameDisplay').classList.add('hidden'); selectedFile = null; }); }; if (selectedFile) { const reader = new FileReader(); reader.onload = (e) => save({ name: selectedFile.name, type: selectedFile.type, data: e.target.result }); reader.readAsDataURL(selectedFile); } else { save(null); } }
+        function renderActivityFeed() { const list = safeGet('activityFeed'); if(!list) return; const acts = currentEditingTicket.activities || []; if(acts.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm bg-gray-50 rounded-xl">אין פעילות או תגובות.</div>'; return; } const sorted = acts.map((a, i) => ({...a, originalIndex: i})).sort((a,b) => new Date(b.date) - new Date(a.date)); list.innerHTML = sorted.map(a => { let fileHTML = ''; if(a.file) { if(a.file.type.startsWith('image/')) { fileHTML = `<br><img src="${a.file.data}" class="mt-3 rounded-lg border max-h-40 cursor-pointer hover:opacity-95 shadow-sm" onclick="window.open('${a.file.data}')">`; } else { fileHTML = `<br><a href="${a.file.data}" download="${a.file.name}" class="inline-flex items-center gap-2 mt-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-xs border border-blue-100 hover:bg-blue-100 transition"><i class="fas fa-file-download"></i> ${a.file.name}</a>`; } } const userName = getHebrewName(a.user); return `<div class="bg-white p-4 rounded-2xl border border-gray-100 flex gap-3 shadow-sm"><div class="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center font-bold flex-shrink-0 text-xs">${userName.charAt(0)}</div><div class="flex-1"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-900">${userName}</span><span class="text-xs text-gray-400 font-mono" dir="ltr">${new Date(a.date).toLocaleString('he-IL')}</span></div><p class="text-sm text-gray-700 whitespace-pre-wrap">${a.text}</p>${fileHTML}</div></div>`; }).join(''); }
+    </script>
+</body>
+</html>
