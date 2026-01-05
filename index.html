@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V66 - Municipal Edition (Full)</title>
+    <title>Project Manager V68 - Customer Service Added</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -192,7 +192,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-8 h-96">
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col"><h4 class="font-bold text-gray-700 mb-4">תקציב לפי מחלקה</h4><div class="flex-1 relative"><canvas id="budgetChart"></canvas></div></div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col"><h4 class="font-bold text-gray-700 mb-4">פרויקטים מובילים</h4><div class="flex-1 relative"><canvas id="topProjectsChart"></canvas></div></div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col"><h4 class="font-bold text-gray-700 mb-4">התפלגות סטטוסים</h4><div class="flex-1 relative"><canvas id="statusChart"></canvas></div></div>
                 </div>
             </div>
         </div>
@@ -305,7 +305,8 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים'];
+        // ADDED 'שירות לקוחות' HERE
+        const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים', 'שירות לקוחות'];
         let projectsData = [];
         let currentProject = null;
         let currentUser = null;
@@ -366,7 +367,6 @@
         // AUTO DEMO CREATOR
         function initDemoProject() {
             // Only runs if no projects exist, to help user visualize
-            // Uses current month dates for relevance
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -440,7 +440,7 @@
             }).join('');
         }
 
-        // ================= CALENDAR LOGIC (V66) =================
+        // ================= CALENDAR LOGIC (V66/67) =================
         function openCalendarModal() {
             currentCalDate = new Date();
             renderCalendar();
@@ -575,6 +575,7 @@
             dashCharts.budget = new Chart(ctx1, { type: 'bar', data: { labels: Object.keys(deptBudget), datasets: [{ label: 'תקציב', data: Object.values(deptBudget), backgroundColor: '#8b5cf6', borderRadius: 6 }] }, options: { responsive: true } });
 
             if(dashCharts.status) dashCharts.status.destroy();
+            // FIXED: Now correctly targeting statusChart
             const ctx2 = document.getElementById('statusChart').getContext('2d');
             dashCharts.status = new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(statusCount), datasets: [{ data: Object.values(statusCount), backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f59e0b'] }] }, options: { responsive: true, cutout: '70%' } });
 
