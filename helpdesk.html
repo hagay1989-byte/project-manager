@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Desk V46 - Excel & Alerts</title>
+    <title>Service Desk V47 - WhatsApp</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -37,7 +37,6 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
 
-        /* Overdue Animation */
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .overdue-card { border: 2px solid #ef4444 !important; background-color: #fef2f2 !important; }
         .overdue-badge { animation: pulse-red 2s infinite; }
@@ -165,7 +164,17 @@
                         <h3 class="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide text-gray-400">מידע נוסף</h3>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div><span class="text-gray-400 block text-xs">סוג:</span><span id="modalTicketType" class="font-bold text-gray-700"></span></div>
-                            <div><span class="text-gray-400 block text-xs">מדווח:</span><span id="modalTicketReporter" class="font-bold text-gray-700"></span></div>
+                            
+                            <div>
+                                <span class="text-gray-400 block text-xs">מדווח:</span>
+                                <div class="flex items-center gap-2">
+                                    <span id="modalTicketReporter" class="font-bold text-gray-700"></span>
+                                    <button id="btnWhatsAppReporter" onclick="sendWhatsAppUpdate()" class="text-green-500 hover:text-green-600 hidden" title="שלח עדכון בוואטסאפ">
+                                        <i class="fab fa-whatsapp text-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+
                             <div><span class="text-gray-400 block text-xs">מטפל:</span><span id="modalTicketAssignee" class="font-bold text-blue-600"></span></div>
                             <div><span class="text-gray-400 block text-xs">נפתח ב:</span><span id="modalTicketDate" class="font-mono text-gray-700"></span></div>
                         </div>
@@ -272,6 +281,15 @@
         (function() { emailjs.init("lVJCS9f5i8YqFTNyK"); })();
 
         const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; 
+        
+        // --- PHONE DIRECTORY (NEW V47) ---
+        // Format: 'email': '9725XXXXXXXX' (International Format)
+        const PHONE_DIRECTORY = {
+            'hagay1989@gmail.com': '972549236299',
+            'hagay@herzliya-marina.co.il': '972549236299',
+            // Add more users here: 'yossi@...': '972500000000'
+        };
+
         const TEAM_DIRECTORY = {
             'ולרי': 'valery@herzliya-marina.co.il', 'חגית': 'hagits@herzliya-marina.co.il', 'רונית': 'ronit@herzliya-marina.co.il', 'יפית': 'office@herzliya-marina.co.il', 'זאנה': 'zana@herzliya-marina.co.il', 'חגי': 'hagay@herzliya-marina.co.il', 'עירא': 'iralif@herzliya-marina.co.il', 'ירדן': 'yarden.ak@herzliya-marina.co.il', 'מיכאלה': 'michaela@herzliya-marina.co.il', 'מעיין': 'maayans@herzliya-marina.co.il', 'אלכס': 'alexf@herzliya-marina.co.il',
             'אלי קירור': 'eli@ac-cool.co.il', 'יוסי חשמל': 'yossi@electric.com'
@@ -412,11 +430,10 @@
             }
         }
 
-        // ================= EXCEL EXPORT (NEW V46) =================
+        // ================= EXCEL EXPORT =================
         function exportTicketsToExcel() {
             let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
             csvContent += "מזהה,נושא,מיקום,מחלקה,דחיפות,סטטוס,מדווח,מטפל,תאריך פתיחה,תאריך סגירה,נסגר ע\"י,סיכום טיפול\n";
-            
             ticketsData.forEach(t => {
                 const created = t.createdAt ? new Date(t.createdAt.seconds * 1000).toLocaleString('he-IL') : '';
                 const closed = t.closedAt ? new Date(t.closedAt).toLocaleString('he-IL') : '';
@@ -425,16 +442,11 @@
                 const status = TICKET_STATUSES[t.status]?.label || t.status;
                 const assignee = t.assignee ? getHebrewName(t.assignee) : '';
                 const reporter = getHebrewName(t.reporter);
-                
                 const safeDesc = (t.title || '').replace(/,/g, " ").replace(/\n/g, " ");
                 const safeRes = (t.resolution || '').replace(/,/g, " ").replace(/\n/g, " ");
-
-                const row = [
-                    t.id, safeDesc, t.site, t.department || '', urgency, status, reporter, assignee, created, closed, closedBy, safeRes
-                ].join(",");
+                const row = [t.id, safeDesc, t.site, t.department || '', urgency, status, reporter, assignee, created, closed, closedBy, safeRes].join(",");
                 csvContent += row + "\n";
             });
-
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
@@ -535,22 +547,19 @@
             const imageHTML = t.image ? `<img src="${t.image}" class="ticket-card-image">` : `<div class="ticket-card-image bg-gray-100 flex items-center justify-center text-gray-300"><i class="fas fa-image text-3xl"></i></div>`;
             const dept = t.department || 'כללי';
             
-            // Time Calc & Overdue Logic (NEW V46)
+            // Time Calc & Overdue Logic
             let createdDate = t.createdAt ? new Date(t.createdAt.seconds * 1000) : new Date();
             const now = new Date();
             const diffTime = Math.abs(now - createdDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-            
             const elapsedTime = getElapsedTime(createdDate);
-            
-            // Check if Overdue (More than 7 days and NOT done)
             const isOverdue = (diffDays > 7 && t.status !== 'done');
             
             let cardClasses = "bg-white border border-gray-100";
             let overdueBadge = "";
             
             if (isOverdue) {
-                cardClasses = "overdue-card shadow-xl"; // Custom red style
+                cardClasses = "overdue-card shadow-xl"; 
                 overdueBadge = `<div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide overdue-badge z-10"><i class="fas fa-exclamation-triangle"></i> בפיגור (${diffDays} ימים)</div>`;
             }
 
@@ -620,7 +629,7 @@
             }
 
             safeText('modalTicketDesc', t.description);
-            safeVal('ticketResolution', t.resolution || ''); // Set resolution text
+            safeVal('ticketResolution', t.resolution || ''); 
             
             if(t.closedBy) {
                 const closerName = getHebrewName(t.closedBy);
@@ -632,7 +641,16 @@
             }
 
             safeText('modalTicketType', t.type || 'כללי');
+            
+            // REPORTER + WHATSAPP LOGIC
             safeText('modalTicketReporter', getHebrewName(t.reporter));
+            const reporterPhone = PHONE_DIRECTORY[t.reporter];
+            if (reporterPhone) {
+                safeRemoveClass('btnWhatsAppReporter', 'hidden');
+            } else {
+                safeAddClass('btnWhatsAppReporter', 'hidden');
+            }
+
             safeText('modalTicketAssignee', t.assignee ? getHebrewName(t.assignee) : 'טרם שובץ');
             safeText('modalTicketDate', t.createdAt ? new Date(t.createdAt.seconds * 1000).toLocaleString('he-IL') : '-');
             
@@ -652,6 +670,31 @@
             }
 
             renderActivityFeed();
+        }
+
+        // --- WHATSAPP UPDATE LOGIC (NEW V47) ---
+        function sendWhatsAppUpdate() {
+            if (!currentEditingTicket) return;
+            const phone = PHONE_DIRECTORY[currentEditingTicket.reporter];
+            if (!phone) return alert("לא נמצא מספר טלפון למדווח זה");
+            
+            const title = currentEditingTicket.title;
+            const statusLabel = TICKET_STATUSES[currentEditingTicket.status].label;
+            const resolution = safeVal('ticketResolution') || "אין פירוט נוסף";
+            const closerName = currentUser ? getHebrewName(currentUser.email) : 'נציג שירות';
+            
+            let message = `*עדכון לגבי קריאת שירות: ${title}*\n`;
+            message += `סטטוס עדכני: ${statusLabel}\n`;
+            if (currentEditingTicket.status === 'done') {
+                message += `טופל ע"י: ${closerName}\n`;
+                message += `סיכום טיפול: ${resolution}\n`;
+            } else {
+                 message += `עדכון מאת: ${closerName}\n`;
+            }
+            message += `\nהמשך יום נעים! ⚓`;
+
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
         }
 
         function saveTicketChanges() {
