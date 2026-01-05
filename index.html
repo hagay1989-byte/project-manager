@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V68 - Customer Service Added</title>
+    <title>Project Manager V70 - Home Button Fixed</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -46,13 +46,13 @@
         
         .event-bar-container { position: absolute; top: 25px; left: 0; right: 0; display: flex; flex-direction: column; gap: 2px; }
         
-        /* Updated Task Style - Matches Project Blue */
+        /* Task Style - Blue Theme */
         .cal-event-segment { height: 18px; margin-bottom: 2px; font-size: 0.65rem; color: white; display: flex; align-items: center; padding: 0 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 10; opacity: 0.9; }
         .is-start { border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-right: 2px; }
         .is-end { border-top-left-radius: 4px; border-bottom-left-radius: 4px; margin-left: 2px; }
         .is-middle { margin: 0 -1px; z-index: 5; }
         
-        /* Task dots inside calendar - CHANGED TO BLUE */
+        /* Task dots - Blue */
         .task-dot { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; display: inline-block; margin-right: 4px; border: 1px solid white; }
         .task-marker { 
             font-size: 0.65rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; 
@@ -93,13 +93,15 @@
     <div id="app" class="hidden flex-col h-full w-full">
         <header class="glass-header z-30 flex-shrink-0">
             <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                <div class="flex items-center gap-4">
+                
+                <div class="flex items-center gap-4 cursor-pointer hover:opacity-80 transition select-none" onclick="resetDashboard()" title="חזרה לראשי">
                     <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md"><i class="fas fa-project-diagram text-xl"></i></div>
                     <div>
                         <h1 class="text-2xl font-bold text-gray-900 leading-none">מערכת פרויקטים</h1>
                         <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
                     </div>
                 </div>
+
                 <div class="flex items-center gap-3">
                     <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono hidden sm:block"></span>
                     
@@ -148,9 +150,7 @@
                         <h3 class="text-2xl font-black text-gray-800 leading-none">גאנט ניהולי</h3>
                         <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
                     </div>
-                    
                     <div class="h-8 w-px bg-gray-200 mx-2"></div>
-
                     <div class="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200">
                         <button onclick="changeMonth(-1)" class="p-2 hover:bg-white hover:shadow-sm rounded-lg transition text-gray-600"><i class="fas fa-chevron-right"></i></button>
                         <span id="calMonthYear" class="px-4 font-bold text-gray-700 min-w-[130px] text-center"></span>
@@ -305,7 +305,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // ADDED 'שירות לקוחות' HERE
+        // DEPARTMENTS
         const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים', 'שירות לקוחות'];
         let projectsData = [];
         let currentProject = null;
@@ -337,6 +337,14 @@
             });
         }
 
+        // RESET FUNCTION (HOME BUTTON)
+        function resetDashboard() {
+            document.getElementById('filterDept').value = 'all';
+            document.getElementById('filterStatus').value = 'all';
+            switchView('list');
+            renderProjects();
+        }
+
         function initDepts() {
             const s = document.getElementById('npDept');
             const f = document.getElementById('filterDept');
@@ -354,7 +362,7 @@
         function loadProjects() {
             db.collection('projects').onSnapshot(snap => {
                 projectsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                if (projectsData.length === 0) initDemoProject(); // Auto-create demo for user
+                if (projectsData.length === 0) initDemoProject(); 
                 renderGrid();
                 if(currentProject) {
                     const updated = projectsData.find(p => p.id === currentProject.id);
@@ -364,15 +372,13 @@
             });
         }
         
-        // AUTO DEMO CREATOR
         function initDemoProject() {
-            // Only runs if no projects exist, to help user visualize
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const d1 = `${year}-${month}-01`;
             const d2 = `${year}-${month}-28`;
-            const t1 = `${year}-${month}-04`; // Matching the visual roughly
+            const t1 = `${year}-${month}-04`; 
             const t2 = `${year}-${month}-06`;
             
             db.collection('projects').add({
@@ -440,7 +446,7 @@
             }).join('');
         }
 
-        // ================= CALENDAR LOGIC (V66/67) =================
+        // ================= CALENDAR =================
         function openCalendarModal() {
             currentCalDate = new Date();
             renderCalendar();
@@ -516,7 +522,6 @@
                     }
                 });
 
-                // Render Tasks with Blue dots (linked style)
                 relevantProjects.forEach(p => {
                     if (p.tasks) {
                         p.tasks.forEach(t => {
@@ -575,7 +580,6 @@
             dashCharts.budget = new Chart(ctx1, { type: 'bar', data: { labels: Object.keys(deptBudget), datasets: [{ label: 'תקציב', data: Object.values(deptBudget), backgroundColor: '#8b5cf6', borderRadius: 6 }] }, options: { responsive: true } });
 
             if(dashCharts.status) dashCharts.status.destroy();
-            // FIXED: Now correctly targeting statusChart
             const ctx2 = document.getElementById('statusChart').getContext('2d');
             dashCharts.status = new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(statusCount), datasets: [{ data: Object.values(statusCount), backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f59e0b'] }] }, options: { responsive: true, cutout: '70%' } });
 
@@ -726,14 +730,27 @@
             document.getElementById('newProjectModal').classList.add('hidden');
             document.getElementById('newProjectModal').classList.remove('flex');
         }
+        
+        function sendEmailAlert(project) {
+            // Uncomment and set your keys to enable:
+            // emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', { name: project.name, manager: project.manager });
+            console.log('Email capability is ready (configure in script).');
+        }
+
         function createNewProject() {
             const name = document.getElementById('npName').value;
             const dept = document.getElementById('npDept').value;
             if(!name) return alert('חובה להזין שם');
-            db.collection('projects').add({
+            
+            const newProj = {
                 name: name, department: dept, status: 'מתוכנן', progress: 0, risk: 'low',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => { closeNewProjectModal(); });
+            };
+
+            db.collection('projects').add(newProj).then(() => { 
+                sendEmailAlert(newProj);
+                closeNewProjectModal(); 
+            });
         }
         
         function exportToExcel() {
