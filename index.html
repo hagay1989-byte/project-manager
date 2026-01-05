@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V41 - Hebrew Names Only</title>
+    <title>Project Manager V59 - Gantt & Departments</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -30,8 +30,12 @@
         .tab-content { display: none; height: 100%; }
         .tab-content.active { display: flex; flex-direction: column; animation: fadeIn 0.2s ease-out; }
         
+        /* Gantt / Timeline Styles */
         .gantt-track { background-color: #e2e8f0; border-radius: 8px; height: 36px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
         .gantt-bar { position: absolute; top: 4px; bottom: 4px; border-radius: 6px; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-left: 8px; color: white; font-size: 0.75rem; font-weight: bold; }
+        
+        .dept-header { position: sticky; top: 0; z-index: 10; background: rgba(240, 242, 245, 0.95); backdrop-filter: blur(4px); padding: 15px 0 10px 0; border-bottom: 2px solid #e5e7eb; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .timeline-line { position: absolute; right: 23px; top: 0; bottom: 0; width: 2px; background: #cbd5e1; z-index: 0; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes scaleUp { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -66,6 +70,7 @@
                             <h1 class="text-2xl font-bold text-gray-900 leading-none">ניהול פרויקטים</h1>
                             <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
                         </div>
+                        <a href="helpdesk.html" class="mr-4 text-sm font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 transition"><i class="fas fa-tools"></i> תקלות</a>
                     </div>
                     <div class="flex gap-2 items-center flex-wrap justify-center md:justify-end w-full md:w-auto">
                         <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hidden sm:block"></span>
@@ -80,6 +85,7 @@
                     <div class="bg-gray-100 p-1.5 rounded-xl flex border border-gray-200">
                         <button onclick="switchView('list')" id="viewBtnList" class="px-4 py-1.5 text-sm rounded-lg transition font-medium flex items-center gap-2"><i class="fas fa-list"></i> רשימה</button>
                         <button onclick="switchView('kanban')" id="viewBtnKanban" class="px-4 py-1.5 text-sm rounded-lg transition font-medium flex items-center gap-2"><i class="fas fa-columns"></i> לוח</button>
+                        <button onclick="switchView('timeline')" id="viewBtnTimeline" class="px-4 py-1.5 text-sm rounded-lg transition font-medium flex items-center gap-2"><i class="fas fa-calendar-alt"></i> גאנט ניהולי</button>
                     </div>
                     <div class="flex gap-3">
                         <select id="filterDept" onchange="renderProjects()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none cursor-pointer hover:border-blue-300 transition shadow-sm"><option value="all">כל המחלקות</option></select>
@@ -125,7 +131,7 @@
             <div class="flex border-b border-gray-100 px-8 bg-white gap-4 flex-shrink-0">
                 <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active"><i class="far fa-eye ml-1"></i> סקירה</button>
                 <button onclick="switchTab('kanban')" id="tab-kanban" class="tab-btn"><i class="fas fa-tasks ml-1"></i> ניהולי</button>
-                <button onclick="switchTab('timeline')" id="tab-timeline" class="tab-btn"><i class="fas fa-stream ml-1"></i> ציר זמן</button>
+                <button onclick="switchTab('timeline')" id="tab-timeline" class="tab-btn"><i class="fas fa-stream ml-1"></i> גאנט ניהולי</button>
                 <button onclick="switchTab('activity')" id="tab-activity" class="tab-btn"><i class="far fa-comments ml-1"></i> פעילות</button>
             </div>
             <div class="flex-1 overflow-y-auto p-6 bg-gray-50 custom-scrollbar relative">
@@ -137,7 +143,6 @@
                     </div>
                     <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex-grow">
                         <h3 class="font-bold text-gray-800 text-lg mb-4 pb-2 border-b border-gray-100">עריכת פרטים</h3>
-                        
                         <div class="grid grid-cols-2 gap-6 mb-4">
                             <div><label class="block text-xs font-bold text-gray-500 mb-1">שם הפרויקט</label><input type="text" id="editName" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none font-bold text-gray-700"></div>
                             <div><label class="block text-xs font-bold text-gray-500 mb-1">תקציב (₪)</label><input type="number" id="editCost" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div>
@@ -146,11 +151,7 @@
                             <div class="space-y-4"><div><label class="block text-xs font-bold text-gray-500 mb-1">תאריך התחלה</label><input type="date" id="editStartDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div><div><label class="block text-xs font-bold text-gray-500 mb-1">תאריך סיום</label><input type="date" id="editEndDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div></div>
                             <div class="space-y-4"><div><label class="block text-xs font-bold text-gray-500 mb-1">סטטוס</label><select id="editStatus" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div><div><label class="block text-xs font-bold text-gray-500 mb-1">אחראי</label><select id="editOwner" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div></div>
                             <div class="col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1">תיאור ומטרה</label><textarea id="editDesc" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none resize-none" rows="2"></textarea></div>
-                            
-                            <div class="col-span-2 mt-2">
-                                <label class="block text-xs font-bold text-gray-500 mb-2">צוות הפרויקט</label>
-                                <div id="viewTeamList" class="flex flex-wrap gap-2"></div>
-                            </div>
+                            <div class="col-span-2 mt-2"><label class="block text-xs font-bold text-gray-500 mb-2">צוות הפרויקט</label><div id="viewTeamList" class="flex flex-wrap gap-2"></div></div>
                         </div>
                     </div>
                 </div>
@@ -158,7 +159,7 @@
                     <div class="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200 shadow-sm"><input id="newTaskInput" type="text" class="flex-1 bg-transparent border-none text-sm outline-none px-3" placeholder="הקלד משימה..." onkeypress="if(event.key === 'Enter') addTask()"><button onclick="addTask()" class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-bold">הוסף</button></div>
                     <div id="tasksList" class="space-y-2 flex-grow overflow-y-auto pr-1"></div>
                 </div>
-                <div id="content-timeline" class="tab-content"><div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm"><h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2"><i class="fas fa-chart-gantt text-blue-500"></i> ציר זמן פרויקט</h3><div id="ganttChartContainer"></div></div></div>
+                <div id="content-timeline" class="tab-content"><div class="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm"><h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2"><i class="fas fa-chart-gantt text-blue-500"></i> גאנט ניהולי</h3><div id="ganttChartContainer"></div></div></div>
                 <div id="content-activity" class="tab-content gap-4">
                     <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex-shrink-0"><textarea id="newNoteText" class="w-full bg-gray-50 border-none rounded-xl p-3 text-sm mb-2 outline-none" rows="2" placeholder="כתוב הערה..."></textarea><div class="flex justify-between items-center"><div class="flex items-center gap-2"><input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(this)"><button onclick="document.getElementById('fileInput').click()" class="text-gray-500 hover:text-blue-600 p-2 rounded-lg hover:bg-gray-100 transition flex items-center gap-2 text-sm"><i class="fas fa-paperclip"></i> צרף קובץ</button><span id="fileNameDisplay" class="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded hidden"></span></div><button onclick="addActivityNote()" class="bg-blue-600 text-white px-5 py-1.5 rounded-lg text-sm font-bold">שלח</button></div></div>
                     <div id="activityFeed" class="space-y-3 flex-grow overflow-y-auto pr-1"></div>
@@ -199,34 +200,20 @@
             measurementId: "G-NZHPST88NC"
         };
 
-        // --- חיבור למערכת האימייל ---
-        (function() {
-            emailjs.init("lVJCS9f5i8YqFTNyK"); 
-        })();
+        (function() { emailjs.init("lVJCS9f5i8YqFTNyK"); })();
 
-        // --- אזור הגדרות ניהול ---
         const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; 
         
-        // --- ספר הטלפונים הפנימי: שם -> אימייל ---
         const TEAM_DIRECTORY = {
-            'ולרי': 'valery@herzliya-marina.co.il',
-            'חגית': 'hagits@herzliya-marina.co.il',
-            'רונית': 'ronit@herzliya-marina.co.il',
-            'יפית': 'office@herzliya-marina.co.il',
-            'זאנה': 'zana@herzliya-marina.co.il',
-            'חגי': 'hagay@herzliya-marina.co.il',
-            'עירא': 'iralif@herzliya-marina.co.il',
-            'ירדן': 'yarden.ak@herzliya-marina.co.il',
-            'מיכאלה': 'michaela@herzliya-marina.co.il',
-            'מעיין': 'maayans@herzliya-marina.co.il',
-            'אלכס': 'alexf@herzliya-marina.co.il'
+            'ולרי': 'valery@herzliya-marina.co.il', 'חגית': 'hagits@herzliya-marina.co.il', 'רונית': 'ronit@herzliya-marina.co.il', 'יפית': 'office@herzliya-marina.co.il', 'זאנה': 'zana@herzliya-marina.co.il', 'חגי': 'hagay@herzliya-marina.co.il', 'עירא': 'iralif@herzliya-marina.co.il', 'ירדן': 'yarden.ak@herzliya-marina.co.il', 'מיכאלה': 'michaela@herzliya-marina.co.il', 'מעיין': 'maayans@herzliya-marina.co.il', 'אלכס': 'alexf@herzliya-marina.co.il'
         };
 
         const SITES = ['מבנה מנהלה', 'מבנה מספנה', 'חוף הים', 'שובר גלים', 'אירועים', 'רציפים'];
         const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים'];
-        const STATUSES = { 'planned': {label:'מתוכנן', color:'bg-gray-100 text-gray-600', icon:'fa-calendar'}, 'in-progress': {label:'בביצוע', color:'bg-blue-100 text-blue-600', icon:'fa-spinner'}, 'blocked': {label:'אבן דרך', color:'bg-purple-100 text-purple-600', icon:'fa-flag'}, 'done': {label:'הושלם', color:'bg-green-100 text-green-600', icon:'fa-check'} };
+        
+        // Updated 'blocked' status label to 'חסם'
+        const STATUSES = { 'planned': {label:'מתוכנן', color:'bg-gray-100 text-gray-600', icon:'fa-calendar'}, 'in-progress': {label:'בביצוע', color:'bg-blue-100 text-blue-600', icon:'fa-spinner'}, 'blocked': {label:'חסם', color:'bg-purple-100 text-purple-600', icon:'fa-flag'}, 'done': {label:'הושלם', color:'bg-green-100 text-green-600', icon:'fa-check'} };
 
-        // Helper Functions
         function safeGet(id) { return document.getElementById(id); }
         function safeVal(id, val) { const el = document.getElementById(id); if(el) { if(val!==undefined) el.value = val; return el.value; } return ''; }
         function safeText(id, text) { const el = document.getElementById(id); if(el) el.textContent = text; }
@@ -276,12 +263,7 @@
                 safeGet('passInput').value = ''; 
                 safeAddClass('authError', 'hidden');
             }).catch(err => {
-                let msg = err.message;
-                if(err.code === 'auth/email-already-in-use') msg = 'המייל כבר קיים - נסה להתחבר במקום להירשם';
-                if(err.code === 'auth/wrong-password') msg = 'סיסמה שגויה';
-                if(err.code === 'auth/user-not-found') msg = 'משתמש לא קיים - נסה להירשם';
-                if(err.code === 'auth/weak-password') msg = 'סיסמה חלשה מדי';
-                safeText('authError', msg); safeRemoveClass('authError', 'hidden');
+                safeText('authError', err.message); safeRemoveClass('authError', 'hidden');
             });
         }
 
@@ -343,8 +325,79 @@
             const container = safeGet('mainContent'); if(!container) return;
             const dept = safeVal('filterDept'); const status = safeVal('filterStatus');
             const filtered = projectsData.filter(p => { if(dept !== 'all' && p.department !== dept) return false; if(status !== 'all' && p.status !== status) return false; return true; });
-            if (currentView === 'list') { updateViewButtons('list'); container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${filtered.map(p => createProjectCardHTML(p)).join('')}</div>`; } 
-            else { updateViewButtons('kanban'); const cols = Object.keys(STATUSES).map(k => { const items = filtered.filter(p => p.status === k); return `<div class="bg-gray-50 p-4 rounded-2xl min-w-[280px] h-fit border border-gray-200"><h3 class="font-bold text-gray-700 mb-4 flex justify-between items-center px-1"><span class="flex items-center gap-2"><i class="fas ${STATUSES[k].icon} text-gray-400"></i> ${STATUSES[k].label}</span><span class="bg-white text-gray-600 text-xs px-2.5 py-1 rounded-lg shadow-sm border border-gray-100 font-mono">${items.length}</span></h3><div class="space-y-3">${items.map(p => createProjectCardHTML(p)).join('')}</div></div>`; }).join(''); container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto pb-4">${cols}</div>`; }
+            
+            if (currentView === 'list') {
+                updateViewButtons('list');
+                container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${filtered.map(p => createProjectCardHTML(p)).join('')}</div>`;
+            } else if (currentView === 'kanban') {
+                updateViewButtons('kanban');
+                const cols = Object.keys(STATUSES).map(k => {
+                    const items = filtered.filter(p => p.status === k);
+                    return `<div class="bg-gray-50 p-4 rounded-2xl min-w-[280px] h-fit border border-gray-200"><h3 class="font-bold text-gray-700 mb-4 flex justify-between items-center px-1"><span class="flex items-center gap-2"><i class="fas ${STATUSES[k].icon} text-gray-400"></i> ${STATUSES[k].label}</span><span class="bg-white text-gray-600 text-xs px-2.5 py-1 rounded-lg shadow-sm border border-gray-100 font-mono">${items.length}</span></h3><div class="space-y-3">${items.map(p => createProjectCardHTML(p)).join('')}</div></div>`;
+                }).join('');
+                container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto pb-4">${cols}</div>`;
+            } else if (currentView === 'timeline') {
+                updateViewButtons('timeline');
+                renderMainTimeline(filtered, container);
+            }
+        }
+
+        // Updated Timeline to group by Department
+        function renderMainTimeline(projects, container) {
+            // Group by Department
+            const groups = {};
+            const validProjects = projects.filter(p => p.startDate || p.endDate).sort((a,b) => {
+                const dateA = a.endDate ? new Date(a.endDate) : new Date('2099-01-01');
+                const dateB = b.endDate ? new Date(b.endDate) : new Date('2099-01-01');
+                return dateA - dateB;
+            });
+            
+            validProjects.forEach(p => {
+                const dep = p.department || 'כללי';
+                if(!groups[dep]) groups[dep] = [];
+                groups[dep].push(p);
+            });
+
+            if(Object.keys(groups).length === 0) {
+                container.innerHTML = `<div class="text-center py-20 text-gray-400">אין פרויקטים עם תאריכים להצגה בגאנט</div>`;
+                return;
+            }
+
+            let html = '<div class="relative space-y-8 pr-8 max-w-5xl mx-auto"><div class="timeline-line"></div>';
+            for (const [dept, items] of Object.entries(groups)) {
+                html += `<div class="relative">
+                    <div class="dept-header">
+                        <span class="bg-gray-800 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md">${dept}</span>
+                        <span class="text-xs text-gray-500 font-bold bg-white px-2 py-1 rounded-lg border">${items.length} פרויקטים</span>
+                    </div>
+                    <div class="space-y-4">`;
+                
+                html += items.map(p => {
+                    const s = STATUSES[p.status];
+                    const dateStr = p.endDate ? new Date(p.endDate).toLocaleDateString('he-IL') : '???';
+                    return `<div onclick="openFullProject('${p.id}')" class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition relative cursor-pointer group">
+                        <div class="absolute -right-[35px] top-6 w-3 h-3 rounded-full bg-blue-500 border-2 border-white ring-2 ring-blue-100"></div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-lg group-hover:text-blue-600 transition">${p.name}</h4>
+                                <div class="flex gap-2 mt-2">
+                                    <span class="text-xs px-2 py-0.5 rounded ${s.color} border border-black/5">${s.label}</span>
+                                    <span class="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100"><i class="far fa-user ml-1"></i>${p.owner}</span>
+                                </div>
+                            </div>
+                            <div class="text-left font-mono font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-100 text-xs">
+                                יעד: ${dateStr}
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 mt-3 overflow-hidden">
+                            <div class="h-full bg-blue-500" style="width: ${p.progress || 0}%"></div>
+                        </div>
+                    </div>`;
+                }).join('');
+                html += `</div></div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         function createProjectCardHTML(p) {
@@ -379,51 +432,23 @@
             safeText('viewStartDate', currentEditingProject.startDate || '-'); safeText('viewEndDate', currentEditingProject.endDate || '-');
             let risk = 'נמוכה'; if (currentEditingProject.status === 'blocked') risk = 'גבוהה'; safeText('statRisk', risk);
             
-            // --- תצוגת שותפים מתוקנת (V41 - FORCE HEBREW) ---
             const teamContainer = safeGet('viewTeamList');
             if (teamContainer) {
                 const team = currentEditingProject.team || [];
                 if (team.length === 0) {
                     teamContainer.innerHTML = '<span class="text-gray-400 text-sm">אין שותפים נוספים</span>';
                 } else {
-                    // מילון עזר לאימיילים שלא נמצאו ברשימה הרשמית אבל אנחנו יודעים מי הם
-                    const hebrewMapping = {
-                        'alex': 'אלכס', 'alexf': 'אלכס',
-                        'hagay': 'חגי',
-                        'valery': 'ולרי',
-                        'ronit': 'רונית',
-                        'hagits': 'חגית',
-                        'hagit': 'חגית',
-                        'maayans': 'מעיין',
-                        'maayan': 'מעיין',
-                        'yarden': 'ירדן',
-                        'michaela': 'מיכאלה',
-                        'iralif': 'עירא',
-                        'ira': 'עירא',
-                        'zana': 'זאנה',
-                        'office': 'יפית',
-                        'yafit': 'יפית'
-                    };
-
+                    const hebrewMapping = { 'alex': 'אלכס', 'alexf': 'אלכס', 'hagay': 'חגי', 'valery': 'ולרי', 'ronit': 'רונית', 'hagits': 'חגית', 'hagit': 'חגית', 'maayans': 'מעיין', 'maayan': 'מעיין', 'yarden': 'ירדן', 'michaela': 'מיכאלה', 'iralif': 'עירא', 'ira': 'עירא', 'zana': 'זאנה', 'office': 'יפית', 'yafit': 'יפית' };
                     const names = team.map(email => {
-                        // 1. נסה למצוא את השם ברשימה הרשמית
                         const foundName = Object.keys(TEAM_DIRECTORY).find(key => TEAM_DIRECTORY[key].toLowerCase().trim() === email.toLowerCase().trim());
                         if (foundName) return foundName;
-
-                        // 2. אם לא מצא, קח את התחילית (למשל alex)
                         const shortName = email.split('@')[0].toLowerCase();
-                        
-                        // 3. בדוק אם התחילית קיימת במילון המיפוי הידני
                         if (hebrewMapping[shortName]) return hebrewMapping[shortName];
-
-                        // 4. ברירת מחדל אחרונה (רק אם ממש אין ברירה)
                         return shortName;
                     });
-                    
                     teamContainer.innerHTML = names.map(n => `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold shadow-sm">${n}</span>`).join('');
                 }
             }
-            // --------------------------
 
             const activeTab = document.querySelector('.tab-content.active');
             if (activeTab && activeTab.id === 'content-kanban') renderTasksList();
@@ -438,7 +463,7 @@
         }
 
         function syncData() {
-            currentEditingProject.name = safeVal('editName');           
+            currentEditingProject.name = safeVal('editName');            
             currentEditingProject.estimatedCost = safeVal('editCost'); 
             safeText('modalProjectTitle', currentEditingProject.name); 
             currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate');
@@ -528,7 +553,6 @@
             }).join('');
         }
 
-        // --- שמירה חכמה עם בדיקת סיום פרויקט ---
         function saveFullProject() {
             const oldStatus = currentEditingProject.status;
             const newStatus = safeVal('editStatus');
@@ -543,7 +567,6 @@
 
             db.collection('projects').doc(currentEditingProject.id).update(currentEditingProject).then(() => {
                 
-                // בדיקה: האם הפרויקט הסתיים?
                 if (oldStatus !== 'done' && newStatus === 'done') {
                     const team = currentEditingProject.team || [];
                     if (team.length > 0) {
@@ -691,10 +714,12 @@
 
         function switchView(v) { currentView = v; renderProjects(); }
         function updateViewButtons(active) {
-            const l = safeGet('viewBtnList'), k = safeGet('viewBtnKanban');
+            const l = safeGet('viewBtnList'), k = safeGet('viewBtnKanban'), t = safeGet('viewBtnTimeline');
             const act = "px-5 py-2 text-sm rounded-lg transition font-bold flex items-center gap-2 shadow-sm bg-white text-blue-600";
             const inact = "px-5 py-2 text-sm rounded-lg transition font-medium flex items-center gap-2 text-slate-500 hover:bg-white hover:text-slate-700 hover:shadow-sm";
-            l.className = active === 'list' ? act : inact; k.className = active === 'kanban' ? act : inact;
+            if(l) l.className = active === 'list' ? act : inact;
+            if(k) k.className = active === 'kanban' ? act : inact;
+            if(t) t.className = active === 'timeline' ? act : inact;
         }
     </script>
 </body>
