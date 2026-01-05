@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V60 - Management Gantt</title>
+    <title>Project Manager V61 - Calendar & Filter</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,48 +20,51 @@
         body { font-family: 'Heebo', sans-serif; background-color: #f3f4f6; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         .glass-header { background: #ffffff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
         
         .project-card { 
-            background: white; 
-            border-radius: 12px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
-            transition: all 0.2s ease-in-out; 
-            cursor: pointer; 
-            border: 1px solid #f1f5f9;
+            background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+            transition: all 0.2s ease-in-out; cursor: pointer; border: 1px solid #f1f5f9;
         }
         .project-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #3b82f6; }
 
-        .nav-tab {
-            padding: 12px 24px;
-            font-weight: 600;
-            color: #64748b;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+        .nav-tab { padding: 12px 24px; font-weight: 600; color: #64748b; border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.2s; }
         .nav-tab:hover { color: #3b82f6; background-color: #f8fafc; }
         .nav-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; background-color: #fff; }
         
         .tab-content { display: none; padding: 24px; }
         .tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
 
-        /* Gantt Specifics */
-        .dept-header { position: sticky; top: 0; z-index: 10; background: rgba(240, 242, 245, 0.95); backdrop-filter: blur(4px); padding: 15px 0 10px 0; border-bottom: 2px solid #e5e7eb; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-        .timeline-line { position: absolute; right: 23px; top: 0; bottom: 0; width: 2px; background: #cbd5e1; z-index: 0; }
+        /* CALENDAR STYLES */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: #e5e7eb; border: 1px solid #e5e7eb; }
+        .calendar-header { background-color: #f8fafc; color: #64748b; font-weight: bold; text-align: center; padding: 10px 0; font-size: 0.85rem; }
+        .calendar-day { background-color: white; min-height: 120px; padding: 4px; position: relative; }
+        .calendar-day.other-month { background-color: #f9fafb; color: #cbd5e1; }
+        .calendar-day.today { background-color: #eff6ff; }
+        .day-number { font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 4px; display: block; text-align: left; padding-left: 4px; }
+        
+        .cal-event { 
+            font-size: 0.7rem; padding: 2px 6px; margin-bottom: 2px; border-radius: 4px; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; 
+            font-weight: 500; transition: all 0.1s;
+        }
+        .cal-event:hover { transform: scale(1.02); z-index: 10; }
+        .cal-planned { background: #f1f5f9; color: #475569; border-left: 3px solid #94a3b8; }
+        .cal-active { background: #eff6ff; color: #1e40af; border-left: 3px solid #3b82f6; }
+        .cal-done { background: #f0fdf4; color: #166534; border-left: 3px solid #22c55e; }
+        .cal-blocked { background: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes scaleUp { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .animate-modal { animation: scaleUp 0.15s ease-out forwards; }
+        @keyframes scaleUp { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
     <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm z-50">
         <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md text-center">
-            <h2 id="authTitle" class="text-3xl font-bold mb-8 text-gray-800">ניהול פרויקטים</h2>
+            <h2 id="authTitle" class="text-3xl font-bold mb-8 text-gray-800">כניסה למערכת</h2>
             <div id="authError" class="hidden bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg mb-4 text-sm"></div>
             <div class="space-y-5">
                 <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-3.5 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
@@ -85,8 +88,8 @@
                 <div class="flex items-center gap-3">
                     <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono hidden sm:block"></span>
                     
-                    <button onclick="openGanttModal()" class="bg-purple-800 hover:bg-purple-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
-                        <i class="fas fa-stream"></i> גאנט ניהולי
+                    <button onclick="openCalendarModal()" class="bg-purple-800 hover:bg-purple-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
+                        <i class="far fa-calendar-alt"></i> גאנט ניהולי
                     </button>
 
                     <button onclick="openAnalyticsModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
@@ -119,14 +122,33 @@
         </main>
     </div>
 
-    <div id="ganttModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-6xl h-[85vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                <h3 class="text-2xl font-black text-gray-800 flex items-center gap-2"><i class="fas fa-stream text-purple-800"></i> גאנט ניהולי - שנתי</h3>
-                <button onclick="document.getElementById('ganttModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 p-2 rounded-lg transition"><i class="fas fa-times text-gray-500"></i></button>
+    <div id="calendarModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
+            <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                <div class="flex items-center gap-4">
+                    <h3 class="text-2xl font-black text-gray-800 flex items-center gap-2"><i class="far fa-calendar-alt text-purple-800"></i> גאנט ניהולי</h3>
+                    <div class="flex items-center bg-gray-100 rounded-lg p-1">
+                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-white hover:shadow-sm rounded-md transition"><i class="fas fa-chevron-right"></i></button>
+                        <span id="calMonthYear" class="px-4 font-bold text-gray-700 min-w-[120px] text-center"></span>
+                        <button onclick="changeMonth(1)" class="p-2 hover:bg-white hover:shadow-sm rounded-md transition"><i class="fas fa-chevron-left"></i></button>
+                    </div>
+                    <select id="calDeptFilter" onchange="renderCalendar()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-lg px-3 py-1.5 outline-none cursor-pointer font-medium">
+                        <option value="all">🏢 כל המחלקות</option>
+                    </select>
+                </div>
+                <button onclick="document.getElementById('calendarModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 p-2 rounded-lg transition"><i class="fas fa-times text-gray-500"></i></button>
             </div>
-            <div class="p-8 overflow-y-auto bg-gray-50 h-full custom-scrollbar">
-                <div id="ganttContentContainer"></div>
+            <div class="flex-1 overflow-y-auto bg-white p-6 custom-scrollbar">
+                <div class="calendar-grid rounded-xl overflow-hidden shadow-sm">
+                    <div class="calendar-header">ראשון</div>
+                    <div class="calendar-header">שני</div>
+                    <div class="calendar-header">שלישי</div>
+                    <div class="calendar-header">רביעי</div>
+                    <div class="calendar-header">חמישי</div>
+                    <div class="calendar-header">שישי</div>
+                    <div class="calendar-header">שבת</div>
+                    <div id="calendarBody" class="col-span-7 grid grid-cols-7 gap-px bg-gray-200"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -255,6 +277,7 @@
         let currentProject = null;
         let currentUser = null;
         let dashCharts = {};
+        let currentCalDate = new Date();
 
         // AUTH
         auth.onAuthStateChanged(user => {
@@ -284,11 +307,15 @@
         function initDepts() {
             const s = document.getElementById('npDept');
             const f = document.getElementById('filterDept');
+            const c = document.getElementById('calDeptFilter');
             s.innerHTML = '';
             if(f) f.innerHTML = '<option value="all">כל המחלקות</option>';
+            if(c) c.innerHTML = '<option value="all">🏢 כל המחלקות</option>';
+            
             DEPARTMENTS.forEach(d => {
                 s.innerHTML += `<option value="${d}">${d}</option>`;
                 if(f) f.innerHTML += `<option value="${d}">${d}</option>`;
+                if(c) c.innerHTML += `<option value="${d}">${d}</option>`;
             });
         }
 
@@ -300,6 +327,8 @@
                     const updated = projectsData.find(p => p.id === currentProject.id);
                     if(updated) { currentProject = updated; openProjectModal(updated.id); }
                 }
+                // Refresh calendar if open
+                if(!document.getElementById('calendarModal').classList.contains('hidden')) renderCalendar();
             });
         }
 
@@ -345,85 +374,88 @@
             }).join('');
         }
 
-        // --- NEW GANTT MODAL LOGIC (V60) ---
-        function openGanttModal() {
-            const container = document.getElementById('ganttContentContainer');
-            
-            // Group by Department
-            const groups = {};
-            const validProjects = projectsData.filter(p => p.startDate || p.endDate).sort((a,b) => {
-                const dateA = a.endDate ? new Date(a.endDate) : new Date('2099-01-01');
-                const dateB = b.endDate ? new Date(b.endDate) : new Date('2099-01-01');
-                return dateA - dateB;
-            });
-            
-            validProjects.forEach(p => {
-                const dep = p.department || 'כללי';
-                if(!groups[dep]) groups[dep] = [];
-                groups[dep].push(p);
-            });
-
-            if(Object.keys(groups).length === 0) {
-                container.innerHTML = `<div class="text-center py-20 text-gray-400">אין פרויקטים עם תאריכים להצגה בגאנט</div>`;
-            } else {
-                let html = '<div class="relative space-y-8 pr-8 max-w-5xl mx-auto"><div class="timeline-line"></div>';
-                for (const [dept, items] of Object.entries(groups)) {
-                    html += `<div class="relative">
-                        <div class="dept-header">
-                            <span class="bg-gray-800 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md">${dept}</span>
-                            <span class="text-xs text-gray-500 font-bold bg-white px-2 py-1 rounded-lg border">${items.length} פרויקטים</span>
-                        </div>
-                        <div class="space-y-4">`;
-                    
-                    html += items.map(p => {
-                        const statusColor = p.status === 'הושלם' ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-600';
-                        const dateStr = p.endDate ? new Date(p.endDate).toLocaleDateString('he-IL') : '???';
-                        return `<div onclick="openProjectModal('${p.id}')" class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition relative cursor-pointer group">
-                            <div class="absolute -right-[35px] top-6 w-3 h-3 rounded-full bg-blue-500 border-2 border-white ring-2 ring-blue-100"></div>
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h4 class="font-bold text-gray-800 text-lg group-hover:text-blue-600 transition">${p.name}</h4>
-                                    <div class="flex gap-2 mt-2">
-                                        <span class="text-xs px-2 py-0.5 rounded ${statusColor} border border-black/5">${p.status || 'בתהליך'}</span>
-                                        <span class="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-100"><i class="far fa-user ml-1"></i>${p.manager || 'לא ידוע'}</span>
-                                    </div>
-                                </div>
-                                <div class="text-left font-mono font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-100 text-xs">
-                                    יעד: ${dateStr}
-                                </div>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-1.5 mt-3 overflow-hidden">
-                                <div class="h-full bg-blue-500" style="width: ${p.progress || 0}%"></div>
-                            </div>
-                        </div>`;
-                    }).join('');
-                    html += `</div></div>`;
-                }
-                html += '</div>';
-                container.innerHTML = html;
-            }
-
-            document.getElementById('ganttModal').classList.remove('hidden');
-            document.getElementById('ganttModal').classList.add('flex');
+        // ================= CALENDAR LOGIC (V61) =================
+        function openCalendarModal() {
+            currentCalDate = new Date(); // Reset to today
+            renderCalendar();
+            document.getElementById('calendarModal').classList.remove('hidden');
+            document.getElementById('calendarModal').classList.add('flex');
         }
 
-        // VIEW & RENDER
+        function changeMonth(delta) {
+            currentCalDate.setMonth(currentCalDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const year = currentCalDate.getFullYear();
+            const month = currentCalDate.getMonth();
+            const filter = document.getElementById('calDeptFilter').value;
+
+            // Header Date
+            document.getElementById('calMonthYear').innerText = currentCalDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+
+            const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const container = document.getElementById('calendarBody');
+            container.innerHTML = '';
+
+            // Blank cells for previous month
+            for (let i = 0; i < firstDay; i++) {
+                container.innerHTML += `<div class="calendar-day other-month"></div>`;
+            }
+
+            // Days
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const checkDate = new Date(year, month, day);
+                const isToday = new Date().toDateString() === checkDate.toDateString();
+                
+                let dayHTML = `<div class="calendar-day ${isToday ? 'today' : ''}">
+                    <span class="day-number">${day}</span>`;
+
+                // Find projects for this day
+                // Logic: show if date is between start and end (inclusive)
+                projectsData.forEach(p => {
+                    if (filter !== 'all' && p.department !== filter) return;
+                    if (!p.startDate || !p.endDate) return;
+
+                    const pStart = new Date(p.startDate);
+                    const pEnd = new Date(p.endDate);
+                    
+                    // Simple check: is this day inside range?
+                    if (checkDate >= pStart && checkDate <= pEnd) {
+                        let statusClass = 'cal-active';
+                        if (p.status === 'planned') statusClass = 'cal-planned';
+                        if (p.status === 'הושלם') statusClass = 'cal-done';
+                        if (p.status === 'עצור') statusClass = 'cal-blocked';
+
+                        dayHTML += `<div onclick="openProjectModal('${p.id}')" class="cal-event ${statusClass}" title="${p.name}">
+                            ${p.name}
+                        </div>`;
+                    }
+                });
+
+                dayHTML += `</div>`;
+                container.innerHTML += dayHTML;
+            }
+        }
+
+        // VIEW & RENDER (Simple switch for main list)
         function switchView(view) {
-            // Keep List/Kanban switching logic but remove Timeline specific tab logic from main view
             const btnGrid = document.getElementById('viewBtnList');
             const btnKanban = document.getElementById('viewBtnKanban');
             const container = document.getElementById('projectsGrid');
             
-            // Logic for List vs Kanban rendering (Simplified for V60)
             if (view === 'list') {
                 btnGrid.classList.add('bg-white', 'shadow', 'text-gray-800'); btnGrid.classList.remove('text-gray-500');
                 btnKanban.classList.remove('bg-white', 'shadow', 'text-gray-800'); btnKanban.classList.add('text-gray-500');
-                renderGrid(); // Standard grid
+                renderGrid();
             } else if (view === 'kanban') {
                 btnKanban.classList.add('bg-white', 'shadow', 'text-gray-800'); btnKanban.classList.remove('text-gray-500');
                 btnGrid.classList.remove('bg-white', 'shadow', 'text-gray-800'); btnGrid.classList.add('text-gray-500');
-                // Simple Kanban logic (render columns)
-                const filtered = projectsData; // Filter logic is same
+                
+                const filtered = projectsData; // Should use same filter logic as renderGrid
                 const cols = ['מתוכנן', 'בתהליך', 'הושלם', 'עצור'].map(k => {
                     const items = filtered.filter(p => (p.status === k) || (k==='מתוכנן' && p.status==='planned'));
                     return `<div class="bg-gray-50 p-4 rounded-2xl min-w-[280px] h-fit border border-gray-200"><h3 class="font-bold text-gray-700 mb-4 px-1">${k} <span class="bg-white text-gray-600 text-xs px-2 rounded border">${items.length}</span></h3><div class="space-y-3">${items.map(p => 
@@ -431,8 +463,6 @@
                     ).join('')}</div></div>`;
                 }).join('');
                 container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto pb-4">${cols}</div>`;
-            } else if (view === 'timeline') {
-                openGanttModal(); // Redirect timeline button to modal
             }
         }
 
