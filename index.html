@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Project Manager V58 - Final Stability Fix</title>
+    <title>Project Manager V60 - Image Viewer</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -131,6 +131,13 @@
         </header>
 
         <main id="mainContent" class="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-4 md:py-8 overflow-y-auto custom-scrollbar"></main>
+    </div>
+
+    <div id="imageViewerModal" class="fixed inset-0 bg-black bg-opacity-95 hidden items-center justify-center z-[100] p-4 animate-modal" onclick="closeImageViewer()">
+        <div class="relative w-full h-full flex items-center justify-center">
+            <button onclick="closeImageViewer()" class="absolute top-4 right-4 text-white/70 hover:text-white text-3xl"><i class="fas fa-times"></i></button>
+            <img id="imageViewerImg" src="" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain" onclick="event.stopPropagation()">
+        </div>
     </div>
 
     <div id="ganttModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-2 md:p-4 backdrop-blur-sm">
@@ -363,13 +370,11 @@
             let alerts = [];
             const today = new Date(); today.setHours(0,0,0,0);
 
-            // 1. פרויקטים חסומים
             projectsData.forEach(p => {
                 if(p.status === 'blocked') {
                     alerts.push({ type: 'project', id: p.id, msg: `הפרויקט <b>${p.name}</b> מסומן כחסום!`, date: p.createdAt });
                 }
-                // 2. משימות באיחור
-                if(p.tasks) {
+                if(Array.isArray(p.tasks)) { 
                     p.tasks.forEach(t => {
                         if(t.dueDate && !t.done) {
                             const d = new Date(t.dueDate);
@@ -381,19 +386,10 @@
                 }
             });
 
-            // עדכון UI
             if(alerts.length > 0) {
                 dBadge.textContent = alerts.length; dBadge.classList.remove('hidden');
                 mBadge.textContent = alerts.length; mBadge.classList.remove('hidden');
-                
-                list.innerHTML = alerts.map(a => `
-                    <div class="notif-item" onclick="openFullProject('${a.id}'); toggleNotifications();">
-                        <div class="flex items-start gap-2">
-                            <i class="fas fa-exclamation-circle text-red-500 mt-1"></i>
-                            <div class="text-xs text-gray-700 leading-tight">${a.msg}</div>
-                        </div>
-                    </div>
-                `).join('');
+                list.innerHTML = alerts.map(a => `<div class="notif-item" onclick="openFullProject('${a.id}'); toggleNotifications();"><div class="flex items-start gap-2"><i class="fas fa-exclamation-circle text-red-500 mt-1"></i><div class="text-xs text-gray-700 leading-tight">${a.msg}</div></div></div>`).join('');
             } else {
                 dBadge.classList.add('hidden'); mBadge.classList.add('hidden');
                 list.innerHTML = '<div class="p-4 text-center text-xs text-gray-400">אין התראות חדשות 🎉</div>';
@@ -410,6 +406,24 @@
             if (!event.target.matches('.fa-bell') && !event.target.closest('.notif-dropdown') && !event.target.closest('button')) {
                 const el = safeGet('notificationDropdown');
                 if (el && el.style.display === 'block') el.style.display = 'none';
+            }
+        }
+
+        // --- IMAGE VIEWER FUNCTIONS (NEW) ---
+        function openImageModal(base64Src) {
+            const modal = document.getElementById('imageViewerModal');
+            const img = document.getElementById('imageViewerImg');
+            if(modal && img) {
+                img.src = base64Src;
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+        function closeImageViewer() {
+            const modal = document.getElementById('imageViewerModal');
+            if(modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
             }
         }
 
@@ -445,11 +459,11 @@
 
         function createProjectCardHTML(p) {
             const s = STATUSES[p.status] || STATUSES['planned'];
-            const tasks = p.tasks || [];
+            const tasks = Array.isArray(p.tasks) ? p.tasks : [];
             const done = tasks.filter(t => t.done).length;
             const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
             let risk = ''; if(p.status === 'blocked') risk = `<div class="mt-4 pt-3 border-t border-gray-50 text-red-600 bg-red-50 p-2 rounded-lg text-xs font-bold flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i> חסום / סיכון גבוה</div>`; else if (progress < 50 && p.endDate && new Date(p.endDate) < new Date()) risk = `<div class="mt-4 pt-3 border-t border-gray-50 text-yellow-600 bg-yellow-50 p-2 rounded-lg text-xs font-bold flex items-center gap-2"><i class="fas fa-bolt"></i> סיכון בינוני</div>`;
-            const teamCount = p.team ? p.team.length : 0;
+            const teamCount = Array.isArray(p.team) ? p.team.length : 0;
             return `<div onclick="openFullProject('${p.id}')" class="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1 relative group"><div class="flex justify-between items-start mb-4"><div><h3 class="font-bold text-gray-800 text-lg mb-1 group-hover:text-blue-600 transition">${p.name}</h3><p class="text-xs text-gray-500 flex items-center gap-1.5"><i class="fas fa-map-marker-alt text-gray-300"></i> ${p.site}</p></div><span class="px-3 py-1 rounded-lg text-xs font-bold ${s.color} border border-black/5 shadow-sm">${s.label}</span></div><div class="space-y-3 mb-5"><div class="flex items-center text-xs text-gray-600 gap-2 bg-gray-50 p-2 rounded-lg"><i class="fas fa-users w-4 text-center text-gray-400"></i> ${teamCount} שותפים</div><div class="flex items-center text-xs text-gray-600 gap-2 bg-gray-50 p-2 rounded-lg"><i class="fas fa-calendar-alt w-4 text-center text-gray-400"></i> <span dir="ltr">${p.startDate || '?'} -> ${p.endDate || '?'}</span></div></div><div class="mb-2"><div class="flex justify-between text-xs mb-1.5"><span class="text-gray-500 font-medium">התקדמות ביצוע</span><span class="font-bold text-blue-600">${progress}%</span></div><div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div class="h-full bg-blue-600 rounded-full shadow-sm" style="width: ${progress}%"></div></div></div>${risk}</div>`;
         }
 
@@ -462,7 +476,7 @@
         }
 
         function refreshModalUI() {
-            const tasks = currentEditingProject.tasks || [];
+            const tasks = Array.isArray(currentEditingProject.tasks) ? currentEditingProject.tasks : [];
             const done = tasks.filter(t => t.done).length;
             const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
             safeText('statProgress', progress + '%'); const pBar = safeGet('statProgressBar'); if(pBar) pBar.style.width = progress + '%';
@@ -470,12 +484,8 @@
             let risk = 'נמוכה'; if (currentEditingProject.status === 'blocked') risk = 'גבוהה'; safeText('statRisk', risk);
             const teamContainer = safeGet('viewTeamList');
             if (teamContainer) {
-                // *** FIX for TypeError: team.map is not a function ***
                 let team = currentEditingProject.team;
-                if (!Array.isArray(team)) {
-                    team = []; // Force it to be an empty array if it's undefined, null or a string
-                }
-                
+                if (!Array.isArray(team)) team = []; 
                 if (team.length === 0) { teamContainer.innerHTML = '<span class="text-gray-400 text-sm">אין שותפים נוספים</span>'; } 
                 else {
                     const hebrewMapping = { 'alex': 'אלכס', 'alexf': 'אלכס', 'hagay': 'חגי', 'valery': 'ולרי', 'ronit': 'רונית', 'hagits': 'חגית', 'hagit': 'חגית', 'maayans': 'מעיין', 'maayan': 'מעיין', 'yarden': 'ירדן', 'michaela': 'מיכאלה', 'iralif': 'עירא', 'ira': 'עירא', 'zana': 'זאנה', 'office': 'יפית', 'yafit': 'יפית' };
@@ -542,7 +552,7 @@
 
                     bodyHTML += `<div class="timeline-row"><div class="sticky-col"><div class="expand-btn" onclick="toggleGanttExpand('${p.id}')">${expandIcon}</div><span class="truncate pr-2 font-bold text-gray-700" title="${p.name}">${p.name}</span></div><div style="display:flex; position:relative; flex:1;">${cellsHTML}<div class="timeline-bar" onclick="openFullProject('${p.id}')" style="left: ${leftPos}px; width: ${widthPx}px; background: ${barColor};">${p.name}</div></div></div>`;
 
-                    if (isExpanded && p.tasks && p.tasks.length > 0) {
+                    if (isExpanded && Array.isArray(p.tasks) && p.tasks.length > 0) {
                         p.tasks.forEach(task => {
                             if(task.dueDate) {
                                 const tDate = new Date(task.dueDate);
@@ -571,35 +581,18 @@
             const container = safeGet('projectGanttContainer');
             if(!container) return;
             const p = currentEditingProject;
-            
-            // בדיקת תקינות תאריכים בסיסית
-            if(!p.startDate || !p.endDate) { 
-                container.innerHTML = '<div class="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed flex flex-col items-center gap-2"><i class="far fa-calendar-times text-2xl"></i><span>נא להגדיר תאריכי התחלה וסיום בפרויקט</span></div>'; return; 
-            }
-
-            // המרה בטוחה לתאריכים כדי למנוע קריסה
-            const start = new Date(p.startDate);
-            const end = new Date(p.endDate);
-            
-            // בדיקה אם התאריכים תקינים (למשל: לא "Invalid Date")
-            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-                 container.innerHTML = '<div class="text-center py-10 text-red-400 bg-red-50 rounded-xl border border-red-100 flex flex-col items-center gap-2"><i class="fas fa-exclamation-triangle text-2xl"></i><span>תאריך לא תקין. נא לערוך מחדש.</span></div>'; return; 
-            }
-
-            const totalTime = end - start;
-            const today = new Date();
-            
-            const sStr = start.toLocaleDateString('he-IL');
-            const eStr = end.toLocaleDateString('he-IL');
-            
+            if(!p.startDate || !p.endDate) { container.innerHTML = '<div class="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed flex flex-col items-center gap-2"><i class="far fa-calendar-times text-2xl"></i><span>נא להגדיר תאריכי התחלה וסיום בפרויקט</span></div>'; return; }
+            const start = new Date(p.startDate); const end = new Date(p.endDate);
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) { container.innerHTML = '<div class="text-center py-10 text-red-400 bg-red-50 rounded-xl border border-red-100 flex flex-col items-center gap-2"><i class="fas fa-exclamation-triangle text-2xl"></i><span>תאריך לא תקין. נא לערוך מחדש.</span></div>'; return; }
+            const totalTime = end - start; const today = new Date();
+            const sStr = start.toLocaleDateString('he-IL'); const eStr = end.toLocaleDateString('he-IL');
             let milestonesHTML = '';
-            if (p.tasks && p.tasks.length > 0) {
+            if (Array.isArray(p.tasks) && p.tasks.length > 0) {
                 p.tasks.forEach(task => {
                     if (task.dueDate) {
                         const tDate = new Date(task.dueDate);
-                        if (!isNaN(tDate.getTime())) { // רק אם תאריך המשימה תקין
-                            let percent = 0;
-                            if (totalTime > 0) { percent = ((tDate - start) / totalTime) * 100; }
+                        if (!isNaN(tDate.getTime())) {
+                            let percent = 0; if (totalTime > 0) { percent = ((tDate - start) / totalTime) * 100; }
                             if (percent < 0) percent = 0; if (percent > 100) percent = 100;
                             let color = '#facc15'; if (task.done) color = '#22c55e'; else if (tDate < today) color = '#ef4444';
                             milestonesHTML += `<div class="mini-milestone" style="left: ${percent}%; background-color: ${color};" title="${task.name} (${tDate.toLocaleDateString('he-IL')})"></div>`;
@@ -607,35 +600,15 @@
                     }
                 });
             }
-
             let progressPercent = 0;
-            if (today > start && totalTime > 0) { 
-                progressPercent = ((today - start) / totalTime) * 100; 
-                if (progressPercent > 100) progressPercent = 100; 
-                if (progressPercent < 0) progressPercent = 0;
-            }
-
-            container.innerHTML = `
-                <div class="relative pt-6 pb-2 px-2">
-                    <div class="flex justify-between text-xs text-gray-500 mb-2 font-mono font-bold"><span><i class="far fa-play-circle"></i> ${sStr}</span><span><i class="far fa-flag"></i> ${eStr}</span></div>
-                    <div class="project-timeline-track">
-                        <div class="absolute top-0 bottom-0 right-0 bg-blue-50 border-l border-blue-100" style="width: ${progressPercent}%"></div>
-                        <div class="project-timeline-bar" style="width: ${p.progress || 0}%"><span class="absolute left-2 text-white text-xs drop-shadow-md">${p.progress}%</span></div>
-                        ${milestonesHTML}
-                    </div>
-                    <div class="mt-3 flex justify-center gap-4 text-[10px] text-gray-400">
-                        <span class="flex items-center gap-1"><div class="w-2 h-2 bg-green-500 transform rotate-45"></div> בוצע</span>
-                        <span class="flex items-center gap-1"><div class="w-2 h-2 bg-red-500 transform rotate-45"></div> איחור</span>
-                        <span class="flex items-center gap-1"><div class="w-2 h-2 bg-yellow-400 transform rotate-45"></div> יעד</span>
-                    </div>
-                </div>
-            `;
+            if (today > start && totalTime > 0) { progressPercent = ((today - start) / totalTime) * 100; if (progressPercent > 100) progressPercent = 100; if (progressPercent < 0) progressPercent = 0; }
+            container.innerHTML = `<div class="relative pt-6 pb-2 px-2"><div class="flex justify-between text-xs text-gray-500 mb-2 font-mono font-bold"><span><i class="far fa-play-circle"></i> ${sStr}</span><span><i class="far fa-flag"></i> ${eStr}</span></div><div class="project-timeline-track"><div class="absolute top-0 bottom-0 right-0 bg-blue-50 border-l border-blue-100" style="width: ${progressPercent}%"></div><div class="project-timeline-bar" style="width: ${p.progress || 0}%"><span class="absolute left-2 text-white text-xs drop-shadow-md">${p.progress}%</span></div>${milestonesHTML}</div><div class="mt-3 flex justify-center gap-4 text-[10px] text-gray-400"><span class="flex items-center gap-1"><div class="w-2 h-2 bg-green-500 transform rotate-45"></div> בוצע</span><span class="flex items-center gap-1"><div class="w-2 h-2 bg-red-500 transform rotate-45"></div> איחור</span><span class="flex items-center gap-1"><div class="w-2 h-2 bg-yellow-400 transform rotate-45"></div> יעד</span></div></div>`;
         }
 
         // --- Rest of functions ---
         function renderTasksList() {
             const list = safeGet('tasksList'); if(!list) return;
-            const tasks = currentEditingProject.tasks || [];
+            const tasks = Array.isArray(currentEditingProject.tasks) ? currentEditingProject.tasks : [];
             if(tasks.length === 0) { list.innerHTML = `<div class="flex flex-col items-center justify-center h-48 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200"><i class="fas fa-clipboard-check text-4xl mb-3 opacity-20"></i><span class="text-sm">אין משימות לביצוע.</span></div>`; return; }
             list.innerHTML = tasks.map((t, idx) => {
                 let dateBadge = '';
@@ -654,7 +627,7 @@
         function addTask() {
             const input = safeGet('newTaskInput'); const dateInput = safeGet('newTaskDate');
             if(!input || !input.value.trim()) return;
-            if (!currentEditingProject.tasks) currentEditingProject.tasks = [];
+            if (!Array.isArray(currentEditingProject.tasks)) currentEditingProject.tasks = [];
             let currentUserName = 'לא הוקצה';
             if (currentUser && currentUser.email) {
                 const directoryName = Object.keys(TEAM_DIRECTORY).find(key => TEAM_DIRECTORY[key].toLowerCase() === currentUser.email.toLowerCase());
@@ -668,10 +641,39 @@
         function toggleTask(idx) { currentEditingProject.tasks[idx].done = !currentEditingProject.tasks[idx].done; db.collection('projects').doc(currentEditingProject.id).update({ tasks: currentEditingProject.tasks }); }
         function deleteTask(idx) { const newTasks = [...currentEditingProject.tasks]; newTasks.splice(idx, 1); db.collection('projects').doc(currentEditingProject.id).update({ tasks: newTasks }); }
         function handleFileSelect(input) { if (input.files && input.files[0]) { selectedFile = input.files[0]; if (selectedFile.size > 500 * 1024) { alert("קובץ גדול מדי (מקסימום 500KB)"); selectedFile = null; return; } const d = safeGet('fileNameDisplay'); if(d) { d.textContent = selectedFile.name; d.classList.remove('hidden'); } } }
-        function addActivityNote() { const txt = safeVal('newNoteText'); if(!txt.trim() && !selectedFile) return; const save = (fileData) => { const activity = { user: currentUser.email.split('@')[0], text: txt, date: new Date().toISOString(), file: fileData }; const newActs = [...(currentEditingProject.activities || []), activity]; db.collection('projects').doc(currentEditingProject.id).update({ activities: newActs }).then(() => { const noteBox = safeGet('newNoteText'); if(noteBox) noteBox.value = ''; const fDisplay = safeGet('fileNameDisplay'); if(fDisplay) fDisplay.classList.add('hidden'); selectedFile = null; }); }; if (selectedFile) { const reader = new FileReader(); reader.onload = (e) => save({ name: selectedFile.name, type: selectedFile.type, data: e.target.result }); reader.readAsDataURL(selectedFile); } else { save(null); } }
+        function addActivityNote() { const txt = safeVal('newNoteText'); if(!txt.trim() && !selectedFile) return; const save = (fileData) => { const activity = { user: currentUser.email.split('@')[0], text: txt, date: new Date().toISOString(), file: fileData }; 
+        const currentActs = Array.isArray(currentEditingProject.activities) ? currentEditingProject.activities : [];
+        const newActs = [...currentActs, activity]; db.collection('projects').doc(currentEditingProject.id).update({ activities: newActs }).then(() => { const noteBox = safeGet('newNoteText'); if(noteBox) noteBox.value = ''; const fDisplay = safeGet('fileNameDisplay'); if(fDisplay) fDisplay.classList.add('hidden'); selectedFile = null; }); }; if (selectedFile) { const reader = new FileReader(); reader.onload = (e) => save({ name: selectedFile.name, type: selectedFile.type, data: e.target.result }); reader.readAsDataURL(selectedFile); } else { save(null); } }
         function deleteActivity(idx) { if(!confirm('למחוק?')) return; const acts = [...currentEditingProject.activities]; acts.splice(idx, 1); db.collection('projects').doc(currentEditingProject.id).update({ activities: acts }); }
-        function renderActivityFeed() { const list = safeGet('activityFeed'); if(!list) return; const acts = currentEditingProject.activities || []; if(acts.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">אין פעילות. היה הראשון לעדכן!</div>'; return; } const sorted = acts.map((a, i) => ({...a, originalIndex: i})).sort((a,b) => new Date(b.date) - new Date(a.date)); list.innerHTML = sorted.map(a => { let fileHTML = ''; if(a.file) { if(a.file.type.startsWith('image/')) { fileHTML = `<br><img src="${a.file.data}" class="mt-3 rounded-xl border max-h-48 cursor-pointer hover:opacity-95 shadow-sm" onclick="window.open('${a.file.data}')">`; } else { fileHTML = `<br><a href="${a.file.data}" download="${a.file.name}" class="inline-flex items-center gap-3 mt-3 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm border border-blue-100 hover:bg-blue-100 transition"><i class="fas fa-file-download text-lg"></i> ${a.file.name}</a>`; } } return `<div class="bg-white p-5 rounded-2xl border border-gray-100 flex gap-4 shadow-sm relative group hover:shadow-md transition"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm text-sm">${a.user.charAt(0).toUpperCase()}</div><div class="flex-1"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-900">${a.user}</span><span class="text-xs text-gray-400 font-mono" dir="ltr">${new Date(a.date).toLocaleString('he-IL')}</span></div><p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">${a.text}</p>${fileHTML}</div><button onclick="deleteActivity(${a.originalIndex})" class="absolute top-4 left-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition bg-white p-1.5 rounded-lg border border-gray-100 shadow-sm"><i class="fas fa-trash"></i></button></div>`; }).join(''); }
-        function saveFullProject() { const oldStatus = currentEditingProject.status; const newStatus = safeVal('editStatus'); currentEditingProject.name = safeVal('editName'); currentEditingProject.estimatedCost = safeVal('editCost'); currentEditingProject.status = newStatus; currentEditingProject.owner = safeVal('editOwner'); currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate'); currentEditingProject.objective = safeVal('editDesc'); db.collection('projects').doc(currentEditingProject.id).update(currentEditingProject).then(() => { if (oldStatus !== 'done' && newStatus === 'done') { const team = currentEditingProject.team || []; if (team.length > 0) { let emailPromises = []; const mailTitle = `ברכות! הפרויקט הסתיים - ${currentEditingProject.name}`; const mailBody = `הפרויקט סומן כ"הושלם" במערכת! תודה רבה על העבודה וההשקעה.`; team.forEach(memberEmail => { const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", { to_email: memberEmail, email_title: mailTitle, email_message: mailBody, project_name: currentEditingProject.name, owner_name: currentEditingProject.owner, department: currentEditingProject.department }); emailPromises.push(p); }); alert('הפרויקט עודכן ל"הושלם" ומיילי סיום נשלחו לצוות! 🏁'); } } closeFullModal(); }).catch(e => alert("שגיאה בשמירה: " + e.message)); }
+        
+        // --- UPDATED RENDER ACTIVITY FEED (With Image Actions) ---
+        function renderActivityFeed() { 
+            const list = safeGet('activityFeed'); if(!list) return; 
+            const acts = Array.isArray(currentEditingProject.activities) ? currentEditingProject.activities : [];
+            if(acts.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">אין פעילות. היה הראשון לעדכן!</div>'; return; } 
+            const sorted = acts.map((a, i) => ({...a, originalIndex: i})).sort((a,b) => new Date(b.date) - new Date(a.date)); 
+            
+            list.innerHTML = sorted.map(a => { 
+                let fileHTML = ''; 
+                if(a.file) { 
+                    if(a.file.type.startsWith('image/')) { 
+                        // Updated Image HTML with explicit download button and viewer
+                        fileHTML = `
+                        <div class="mt-3 relative inline-block group">
+                            <img src="${a.file.data}" class="rounded-xl border max-h-48 cursor-pointer hover:opacity-95 shadow-sm transition" onclick="openImageModal('${a.file.data}')">
+                            <a href="${a.file.data}" download="${a.file.name || 'image.png'}" class="absolute bottom-2 right-2 bg-white/90 text-gray-700 p-2 rounded-lg shadow-md hover:text-blue-600 transition opacity-0 group-hover:opacity-100" title="הורד תמונה">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>`; 
+                    } else { 
+                        fileHTML = `<br><a href="${a.file.data}" download="${a.file.name}" class="inline-flex items-center gap-3 mt-3 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm border border-blue-100 hover:bg-blue-100 transition"><i class="fas fa-file-download text-lg"></i> ${a.file.name}</a>`; 
+                    } 
+                } 
+                return `<div class="bg-white p-5 rounded-2xl border border-gray-100 flex gap-4 shadow-sm relative group hover:shadow-md transition"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm text-sm">${a.user.charAt(0).toUpperCase()}</div><div class="flex-1"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-900">${a.user}</span><span class="text-xs text-gray-400 font-mono" dir="ltr">${new Date(a.date).toLocaleString('he-IL')}</span></div><p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">${a.text}</p>${fileHTML}</div><button onclick="deleteActivity(${a.originalIndex})" class="absolute top-4 left-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition bg-white p-1.5 rounded-lg border border-gray-100 shadow-sm"><i class="fas fa-trash"></i></button></div>`; 
+            }).join(''); 
+        }
+
+        function saveFullProject() { const oldStatus = currentEditingProject.status; const newStatus = safeVal('editStatus'); currentEditingProject.name = safeVal('editName'); currentEditingProject.estimatedCost = safeVal('editCost'); currentEditingProject.status = newStatus; currentEditingProject.owner = safeVal('editOwner'); currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate'); currentEditingProject.objective = safeVal('editDesc'); db.collection('projects').doc(currentEditingProject.id).update(currentEditingProject).then(() => { if (oldStatus !== 'done' && newStatus === 'done') { const team = Array.isArray(currentEditingProject.team) ? currentEditingProject.team : []; if (team.length > 0) { let emailPromises = []; const mailTitle = `ברכות! הפרויקט הסתיים - ${currentEditingProject.name}`; const mailBody = `הפרויקט סומן כ"הושלם" במערכת! תודה רבה על העבודה וההשקעה.`; team.forEach(memberEmail => { const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", { to_email: memberEmail, email_title: mailTitle, email_message: mailBody, project_name: currentEditingProject.name, owner_name: currentEditingProject.owner, department: currentEditingProject.department }); emailPromises.push(p); }); alert('הפרויקט עודכן ל"הושלם" ומיילי סיום נשלחו לצוות! 🏁'); } } closeFullModal(); }).catch(e => alert("שגיאה בשמירה: " + e.message)); }
         function deleteCurrentProject() { if(confirm('האם אתה בטוח שברצונך למחוק את הפרויקט?')) db.collection('projects').doc(currentEditingProject.id).delete().then(() => closeFullModal()); }
         function closeFullModal() { safeRemoveClass('fullProjectModal', 'flex'); safeAddClass('fullProjectModal', 'hidden'); currentEditingProject = null; }
         function openNewProjectModal() { safeVal('npName', ''); const startInput = safeGet('npStart'); if(startInput) startInput.valueAsDate = new Date(); safeVal('npEnd', ''); safeVal('npCost', ''); document.querySelectorAll('#npTeam input').forEach(c => c.checked = false); safeRemoveClass('newProjectModal', 'hidden'); safeAddClass('newProjectModal', 'flex'); }
@@ -680,7 +682,9 @@
         function openAnalyticsModal() { let totalBudget = 0; let highRiskCount = 0; let deptBudget = {}; let projectCosts = []; let ownerCounts = {}; let statusCounts = {}; let activeProjects = 0; projectsData.forEach(p => { const cost = Number(p.estimatedCost) || 0; totalBudget += cost; if(p.status === 'blocked') highRiskCount++; if(p.status === 'in-progress') activeProjects++; if(!deptBudget[p.department]) deptBudget[p.department] = 0; deptBudget[p.department] += cost; const ownerName = p.owner || 'לא הוקצה'; ownerCounts[ownerName] = (ownerCounts[ownerName] || 0) + 1; const statusLabel = STATUSES[p.status] ? STATUSES[p.status].label : 'אחר'; statusCounts[statusLabel] = (statusCounts[statusLabel] || 0) + 1; projectCosts.push({ name: p.name, cost: cost }); }); safeText('totalBudgetDisplay', '₪' + totalBudget.toLocaleString()); safeText('totalProjectsDisplay', projectsData.length); safeText('highRiskDisplay', highRiskCount); safeText('activeProjectsDisplay', activeProjects); renderCharts(deptBudget, projectCosts, ownerCounts, statusCounts); safeRemoveClass('analyticsModal', 'hidden'); safeAddClass('analyticsModal', 'flex'); }
         function renderCharts(deptBudget, projectCosts, ownerCounts, statusCounts) { 
             let trendData = new Array(12).fill(0);
-            projectsData.forEach(p => { if(p.tasks) { p.tasks.forEach(t => { if(t.dueDate) { const d = new Date(t.dueDate); if(!isNaN(d.getTime()) && d.getFullYear() === new Date().getFullYear()) { trendData[d.getMonth()]++; } } }); } });
+            projectsData.forEach(p => { if(Array.isArray(p.tasks)) { 
+                p.tasks.forEach(t => { if(t.dueDate) { const d = new Date(t.dueDate); if(!isNaN(d.getTime()) && d.getFullYear() === new Date().getFullYear()) { trendData[d.getMonth()]++; } } }); 
+            } });
             if(analyticsCharts.budget) analyticsCharts.budget.destroy(); if(analyticsCharts.top) analyticsCharts.top.destroy(); if(analyticsCharts.workload) analyticsCharts.workload.destroy(); if(analyticsCharts.status) analyticsCharts.status.destroy(); if(analyticsCharts.trend) analyticsCharts.trend.destroy();
             const ctx1 = document.getElementById('budgetChart').getContext('2d'); analyticsCharts.budget = new Chart(ctx1, { type: 'doughnut', data: { labels: Object.keys(deptBudget), datasets: [{ data: Object.values(deptBudget), backgroundColor: ['#3b82f6', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] }, options: { responsive: true, maintainAspectRatio: false } }); 
             const ctxWorkload = document.getElementById('workloadChart').getContext('2d'); analyticsCharts.workload = new Chart(ctxWorkload, { type: 'bar', data: { labels: Object.keys(ownerCounts), datasets: [{ label: 'מספר פרויקטים', data: Object.values(ownerCounts), backgroundColor: '#8b5cf6', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } }); 
