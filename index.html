@@ -2,11 +2,12 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Manager V70 - Home Button Fixed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Project Manager V55 - Fixed Header</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
@@ -17,279 +18,274 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
     <style>
-        body { font-family: 'Heebo', sans-serif; background-color: #f3f4f6; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        body { font-family: 'Heebo', sans-serif; background-color: #f0f2f5; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         
         .glass-header { background: #ffffff; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .tab-btn { border-bottom: 3px solid transparent; color: #6b7280; padding: 10px 15px; transition: all 0.2s; font-weight: 500; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
+        .tab-btn.active { border-bottom-color: #2563eb; color: #2563eb; background-color: #eff6ff; }
+        .tab-content { display: none; height: 100%; }
+        .tab-content.active { display: flex; flex-direction: column; animation: fadeIn 0.2s ease-out; }
         
-        .project-card { 
-            background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
-            transition: all 0.2s ease-in-out; cursor: pointer; border: 1px solid #f1f5f9;
-        }
-        .project-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #3b82f6; }
+        /* Gantt Styles */
+        .timeline-container { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: white; position: relative; }
+        .timeline-scroll-area { overflow: auto; flex: 1; position: relative; }
+        .timeline-header { display: flex; border-bottom: 1px solid #e5e7eb; background-color: #f9fafb; font-size: 0.75rem; color: #6b7280; font-weight: bold; min-width: max-content; }
+        .timeline-header-cell { width: 40px; text-align: center; padding: 8px 0; border-right: 1px solid #f3f4f6; flex-shrink: 0; }
+        .timeline-body { position: relative; min-width: max-content; }
+        .timeline-row { display: flex; border-bottom: 1px solid #f3f4f6; height: 44px; align-items: center; position: relative; transition: background 0.1s; }
+        .timeline-row:hover { background-color: #f8fafc; }
+        .timeline-row.task-row { height: 32px; background-color: #fcfcfc; border-bottom: 1px dashed #f0f0f0; }
+        .sticky-col { position: sticky; right: 0; background: white; z-index: 20; border-left: 1px solid #e5e7eb; box-shadow: -2px 0 5px rgba(0,0,0,0.05); width: 160px; flex-shrink: 0; display: flex; align-items: center; padding: 0 8px; height: 100%; }
+        @media (max-width: 640px) { .sticky-col { width: 130px; font-size: 0.75rem; } .timeline-header-cell { width: 30px; } }
+        .timeline-bar { position: absolute; top: 8px; height: 28px; border-radius: 6px; font-size: 0.7rem; color: white; display: flex; align-items: center; padding: 0 6px; white-space: nowrap; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; z-index: 10; }
+        .gantt-milestone { position: absolute; top: 50%; transform: translate(-50%, -50%) rotate(45deg); width: 10px; height: 10px; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); z-index: 30; cursor: pointer; }
+        .expand-btn { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: #94a3b8; cursor: pointer; border: 1px solid #e2e8f0; background: #f8fafc; margin-left: 6px; flex-shrink: 0; }
 
-        .nav-tab { padding: 12px 24px; font-weight: 600; color: #64748b; border-bottom: 3px solid transparent; cursor: pointer; transition: all 0.2s; }
-        .nav-tab:hover { color: #3b82f6; background-color: #f8fafc; }
-        .nav-tab.active { color: #3b82f6; border-bottom-color: #3b82f6; background-color: #fff; }
-        
-        .tab-content { display: none; padding: 24px; }
-        .tab-content.active { display: block; animation: fadeIn 0.2s ease-out; }
-
-        /* Calendar / Gantt Styles */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background-color: #e5e7eb; border: 1px solid #e5e7eb; gap: 1px; }
-        .calendar-header { background-color: #f8fafc; color: #64748b; font-weight: bold; text-align: center; padding: 10px 0; font-size: 0.85rem; }
-        .calendar-day { background-color: white; min-height: 140px; padding: 2px 0; position: relative; display: flex; flex-direction: column; }
-        .calendar-day.other-month { background-color: #f9fafb; color: #cbd5e1; }
-        .calendar-day.today { background-color: #eff6ff; }
-        .day-number { font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 4px; padding-right: 6px; text-align: right; }
-        
-        .event-bar-container { position: absolute; top: 25px; left: 0; right: 0; display: flex; flex-direction: column; gap: 2px; }
-        
-        /* Task Style - Blue Theme */
-        .cal-event-segment { height: 18px; margin-bottom: 2px; font-size: 0.65rem; color: white; display: flex; align-items: center; padding: 0 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 10; opacity: 0.9; }
-        .is-start { border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-right: 2px; }
-        .is-end { border-top-left-radius: 4px; border-bottom-left-radius: 4px; margin-left: 2px; }
-        .is-middle { margin: 0 -1px; z-index: 5; }
-        
-        /* Task dots - Blue */
-        .task-dot { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; display: inline-block; margin-right: 4px; border: 1px solid white; }
-        .task-marker { 
-            font-size: 0.65rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; 
-            border-radius: 12px; padding: 2px 8px; margin-top: 2px; display: flex; align-items: center;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 95%; margin-right: auto; margin-left: auto;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: transform 0.1s;
-        }
-        .task-marker:hover { transform: scale(1.02); border-color: #3b82f6; }
-
-        .cal-planned { background-color: #94a3b8; }
-        .cal-active { background-color: #3b82f6; }
-        .cal-done { background-color: #10b981; }
-        .cal-blocked { background-color: #ef4444; }
-
-        /* Internal Gantt Bar */
-        .gantt-track { background-color: #e2e8f0; border-radius: 8px; height: 36px; position: relative; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
-        .gantt-bar { position: absolute; top: 4px; bottom: 4px; border-radius: 6px; background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); transition: width 0.5s ease; display: flex; align-items: center; justify-content: flex-end; padding-left: 8px; color: white; font-size: 0.75rem; font-weight: bold; }
+        /* Internal Project Timeline Styles */
+        .project-timeline-track { background-color: #f8fafc; border-radius: 12px; height: 48px; position: relative; overflow: hidden; box-shadow: inset 0 2px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-top: 10px; }
+        .project-timeline-bar { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; background: transparent; } 
+        .mini-milestone { position: absolute; top: 50%; width: 14px; height: 14px; transform: translate(-50%, -50%) rotate(45deg); border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.15); z-index: 20; cursor: pointer; transition: transform 0.2s; }
+        .mini-milestone:hover { transform: translate(-50%, -50%) rotate(45deg) scale(1.5); z-index: 30; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-modal { animation: scaleUp 0.15s ease-out forwards; }
         @keyframes scaleUp { from { transform: scale(0.98); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-modal { animation: scaleUp 0.15s ease-out forwards; }
     </style>
 </head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden text-sm md:text-base">
 
-    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm z-50">
-        <div class="bg-white p-10 rounded-2xl shadow-2xl w-full max-w-md text-center">
-            <h2 id="authTitle" class="text-3xl font-bold mb-8 text-gray-800">כניסה למערכת</h2>
-            <div id="authError" class="hidden bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg mb-4 text-sm"></div>
-            <div class="space-y-5">
-                <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-5 py-3.5 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
-                <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-5 py-3.5 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
-                <button id="authBtn" onclick="handleAuthAction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95">התחבר</button>
+    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 backdrop-blur-sm z-50 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center">
+            <h2 id="authTitle" class="text-2xl font-bold mb-6 text-gray-800">כניסה למערכת</h2>
+            <div id="authError" class="hidden bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg mb-4 text-xs"></div>
+            <div class="space-y-4">
+                <input type="email" id="emailInput" placeholder="אימייל" class="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
+                <input type="password" id="passInput" placeholder="סיסמה" class="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition" dir="ltr">
+                <button id="authBtn" onclick="handleAuthAction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition active:scale-95">התחבר</button>
+            </div>
+            <div class="mt-6 text-center text-xs">
+                <span id="authToggleText" class="text-gray-500">אין לך חשבון? </span>
+                <button onclick="toggleAuthMode()" id="authToggleLink" class="text-blue-600 font-bold hover:underline cursor-pointer">הירשם כאן</button>
             </div>
         </div>
     </div>
 
     <div id="app" class="hidden flex-col h-full w-full">
         <header class="glass-header z-30 flex-shrink-0">
-            <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="max-w-7xl mx-auto px-4 py-3 md:py-4">
                 
-                <div class="flex items-center gap-4 cursor-pointer hover:opacity-80 transition select-none" onclick="resetDashboard()" title="חזרה לראשי">
-                    <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md"><i class="fas fa-project-diagram text-xl"></i></div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900 leading-none">מערכת פרויקטים</h1>
-                        <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
+                <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3 md:gap-4">
+                    
+                    <div class="flex items-center justify-between w-full md:w-auto">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-blue-600 text-white p-2 rounded-xl shadow-md"><i class="fas fa-layer-group text-lg"></i></div>
+                            <div>
+                                <h1 class="text-xl md:text-2xl font-bold text-gray-900 leading-none">ניהול פרויקטים</h1>
+                                <p class="text-[10px] md:text-xs text-gray-500 mt-0.5 font-medium">החברה העירונית לתיירות</p>
+                            </div>
+                        </div>
+                        <button onclick="auth.signOut()" class="md:hidden text-gray-400 bg-gray-50 p-2 rounded-lg"><i class="fas fa-sign-out-alt"></i></button>
+                    </div>
+                    
+                    <div class="flex flex-col-reverse md:flex-row items-center gap-3 w-full md:w-auto">
+                        
+                        <div class="grid grid-cols-2 sm:grid-cols-4 md:flex gap-2 w-full md:w-auto">
+                            <button onclick="openGanttModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition hover:-translate-y-0.5"><i class="fas fa-calendar-alt"></i> גאנט</button>
+                            <button onclick="openAnalyticsModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition hover:-translate-y-0.5"><i class="fas fa-chart-pie"></i> דשבורד</button>
+                            <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition hover:-translate-y-0.5"><i class="fas fa-file-excel"></i> אקסל</button>
+                            <button onclick="openNewProjectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition hover:-translate-y-0.5">
+                                <i class="fas fa-plus"></i> 
+                                <span class="hidden md:inline">פרויקט חדש</span> <span class="md:hidden">חדש</span> </button>
+                        </div>
+
+                        <div class="hidden md:flex items-center gap-3 border-r pr-3 mr-1">
+                            <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"></span>
+                            <div id="adminBadge" class="hidden bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded border border-red-200">ADMIN</div>
+                            <button onclick="auth.signOut()" class="text-gray-400 hover:text-red-500 p-2 transition bg-gray-50 rounded-lg hover:bg-red-50" title="התנתק"><i class="fas fa-sign-out-alt text-lg"></i></button>
+                        </div>
                     </div>
                 </div>
-
-                <div class="flex items-center gap-3">
-                    <span id="userEmailDisplay" class="text-xs text-gray-500 font-mono hidden sm:block"></span>
-                    
-                    <button onclick="openCalendarModal()" class="bg-purple-800 hover:bg-purple-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
-                        <i class="far fa-calendar-alt"></i> גאנט ניהולי
-                    </button>
-
-                    <button onclick="openAnalyticsModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition hover:-translate-y-0.5">
-                        <i class="fas fa-chart-pie"></i> דשבורד
-                    </button>
-
-                    <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-md transition">
-                        <i class="fas fa-file-excel"></i> אקסל
-                    </button>
-
-                    <button onclick="openNewProjectModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition flex items-center gap-2"><i class="fas fa-plus"></i> פרויקט חדש</button>
-                    <button onclick="auth.signOut()" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-sign-out-alt text-xl"></i></button>
-                </div>
-            </div>
-            
-            <div class="max-w-7xl mx-auto px-6 pb-4 flex justify-between items-center">
-                <div class="bg-gray-100 p-1.5 rounded-xl flex border border-gray-200">
-                    <button onclick="switchView('list')" id="viewBtnList" class="px-4 py-1.5 text-sm rounded-lg transition font-medium flex items-center gap-2"><i class="fas fa-list"></i> רשימה</button>
-                    <button onclick="switchView('kanban')" id="viewBtnKanban" class="px-4 py-1.5 text-sm rounded-lg transition font-medium flex items-center gap-2"><i class="fas fa-columns"></i> לוח</button>
-                </div>
-                <div class="flex gap-3">
-                    <select id="filterDept" onchange="renderProjects()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none cursor-pointer hover:border-blue-300 transition shadow-sm"><option value="all">כל המחלקות</option></select>
-                    <select id="filterStatus" onchange="renderProjects()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none cursor-pointer hover:border-blue-300 transition shadow-sm"><option value="all">כל הסטטוסים</option></select>
+                
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-2">
+                    <div class="bg-gray-100 p-1 rounded-xl flex border border-gray-200 w-full sm:w-auto">
+                        <button onclick="switchView('list')" id="viewBtnList" class="flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold rounded-lg flex justify-center items-center gap-2"><i class="fas fa-list"></i> רשימה</button>
+                        <button onclick="switchView('kanban')" id="viewBtnKanban" class="flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold rounded-lg flex justify-center items-center gap-2"><i class="fas fa-columns"></i> לוח</button>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <select id="filterDept" onchange="renderProjects()" class="flex-1 sm:flex-none bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-3 py-1.5 outline-none"><option value="all">כל המחלקות</option></select>
+                        <select id="filterStatus" onchange="renderProjects()" class="flex-1 sm:flex-none bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-3 py-1.5 outline-none"><option value="all">כל הסטטוסים</option></select>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <main id="mainContent" class="flex-1 max-w-7xl mx-auto w-full px-6 py-8 overflow-y-auto custom-scrollbar">
-            <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-        </main>
+        <main id="mainContent" class="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-4 md:py-8 overflow-y-auto custom-scrollbar"></main>
     </div>
 
-    <div id="calendarModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                <div class="flex items-center gap-5">
-                    <div class="bg-purple-600 text-white p-3 rounded-2xl shadow-lg flex items-center justify-center">
-                        <i class="far fa-calendar-alt text-2xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-2xl font-black text-gray-800 leading-none">גאנט ניהולי</h3>
-                        <p class="text-xs text-gray-500 mt-1 font-medium">החברה העירונית לפיתוח תיירות</p>
-                    </div>
-                    <div class="h-8 w-px bg-gray-200 mx-2"></div>
-                    <div class="flex items-center bg-gray-100 rounded-xl p-1 border border-gray-200">
-                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-white hover:shadow-sm rounded-lg transition text-gray-600"><i class="fas fa-chevron-right"></i></button>
-                        <span id="calMonthYear" class="px-4 font-bold text-gray-700 min-w-[130px] text-center"></span>
-                        <button onclick="changeMonth(1)" class="p-2 hover:bg-white hover:shadow-sm rounded-lg transition text-gray-600"><i class="fas fa-chevron-left"></i></button>
-                    </div>
-                    <select id="calDeptFilter" onchange="renderCalendar()" class="bg-white border border-gray-200 text-gray-700 text-sm rounded-xl px-4 py-2 outline-none cursor-pointer font-medium hover:border-purple-300 transition">
-                        <option value="all">🏢 כל המחלקות</option>
-                    </select>
+    <div id="ganttModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-2 md:p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-7xl h-full md:h-[90vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
+            <div class="p-3 md:p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-white shadow-sm z-10 gap-3">
+                <div class="flex items-center justify-between w-full md:w-auto">
+                     <div class="flex items-center gap-3">
+                         <div class="bg-purple-600 text-white p-1.5 md:p-2 rounded-lg"><i class="fas fa-calendar-alt text-sm md:text-lg"></i></div>
+                         <div><h3 class="text-base md:text-xl font-black text-gray-800">גאנט</h3><p class="text-[10px] text-gray-500 hidden md:block">החברה העירונית</p></div>
+                     </div>
+                     <button onclick="document.getElementById('ganttModal').classList.add('hidden')" class="md:hidden bg-gray-100 text-gray-500 p-2 rounded-lg"><i class="fas fa-times"></i></button>
                 </div>
-                <button onclick="document.getElementById('calendarModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-red-500 p-3 rounded-xl transition"><i class="fas fa-times text-lg"></i></button>
+                
+                <div class="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-200 w-full md:w-auto justify-center">
+                    <button onclick="changeGanttMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white"><i class="fas fa-chevron-right"></i></button>
+                    <span id="ganttMonthLabel" class="font-bold text-gray-700 w-28 text-center select-none text-sm"></span>
+                    <button onclick="changeGanttMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white"><i class="fas fa-chevron-left"></i></button>
+                </div>
+
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <button onclick="downloadGanttImage()" class="flex-1 md:flex-none bg-blue-50 text-blue-600 p-2 rounded-xl text-xs font-bold border border-blue-100 flex items-center justify-center gap-2"><i class="fas fa-camera"></i> <span class="md:hidden">שמור</span></button>
+                    <select id="ganttDeptFilter" onchange="renderGanttCalendar()" class="flex-[2] md:flex-none bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-xl px-2 py-2 outline-none"></select>
+                    <button onclick="document.getElementById('ganttModal').classList.add('hidden')" class="hidden md:flex bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 w-9 h-9 items-center justify-center rounded-xl transition"><i class="fas fa-times text-lg"></i></button>
+                </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto bg-white p-6 custom-scrollbar">
-                <div class="calendar-grid rounded-2xl overflow-hidden shadow-sm border border-gray-200">
-                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">ראשון</div>
-                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">שני</div>
-                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">שלישי</div>
-                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">רביעי</div>
-                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">חמישי</div>
-                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">שישי</div>
-                    <div class="calendar-header py-3 bg-gray-50 border-b border-gray-200">שבת</div>
-                    <div id="calendarBody" class="col-span-7 grid grid-cols-7 gap-px bg-gray-200"></div>
-                </div>
+            <div class="px-3 py-2 bg-gray-50 border-b flex flex-wrap gap-3 text-[10px] md:text-xs font-medium text-gray-500">
+                <div class="flex items-center gap-1"><div class="w-2.5 h-2.5 bg-green-500 transform rotate-45 border border-white"></div> בוצע</div>
+                <div class="flex items-center gap-1"><div class="w-2.5 h-2.5 bg-red-500 transform rotate-45 border border-white"></div> איחור</div>
+                <div class="flex items-center gap-1"><div class="w-2.5 h-2.5 bg-yellow-400 transform rotate-45 border border-white"></div> לביצוע</div>
+            </div>
+
+            <div class="flex-1 overflow-hidden flex flex-col bg-white">
+                <div id="calendarGrid" class="timeline-container w-full h-full"></div>
             </div>
         </div>
     </div>
 
-    <div id="analyticsModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-3xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
-                <h3 class="text-2xl font-black text-gray-800 flex items-center gap-2"><i class="fas fa-chart-line text-indigo-600"></i> תמונת מצב תקציבית</h3>
+    <div id="analyticsModal" class="fixed inset-0 bg-gray-900 bg-opacity-80 hidden items-center justify-center z-50 p-2 md:p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-6xl h-full md:h-[90vh] flex flex-col shadow-2xl animate-modal overflow-hidden">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-white flex-shrink-0">
+                <h3 class="text-lg md:text-2xl font-black text-gray-800 flex items-center gap-2"><i class="fas fa-chart-pie text-indigo-600"></i> דשבורד</h3>
                 <button onclick="document.getElementById('analyticsModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 p-2 rounded-lg transition"><i class="fas fa-times text-gray-500"></i></button>
             </div>
-            <div class="p-8 overflow-y-auto bg-gray-50 h-full">
-                <div class="grid grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><div class="text-sm text-gray-500 font-bold uppercase mb-1">תקציב כולל</div><div class="text-3xl font-black text-indigo-600" id="totalBudgetDisplay">₪0</div></div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><div class="text-sm text-gray-500 font-bold uppercase mb-1">סה"כ פרויקטים</div><div class="text-3xl font-black text-gray-800" id="totalProjectsDisplay">0</div></div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><div class="text-sm text-gray-500 font-bold uppercase mb-1">פרויקטים בסיכון</div><div class="text-3xl font-black text-red-500" id="highRiskDisplay">0</div></div>
+            <div class="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8 custom-scrollbar">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center"><div class="text-[10px] md:text-xs text-gray-400 font-bold uppercase mb-1">תקציב</div><div class="text-xl md:text-3xl font-black text-indigo-600" id="totalBudgetDisplay">0</div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center"><div class="text-[10px] md:text-xs text-gray-400 font-bold uppercase mb-1">פרויקטים</div><div class="text-xl md:text-3xl font-black text-gray-800" id="totalProjectsDisplay">0</div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center"><div class="text-[10px] md:text-xs text-gray-400 font-bold uppercase mb-1">בביצוע</div><div class="text-xl md:text-3xl font-black text-blue-500" id="activeProjectsDisplay">0</div></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center"><div class="text-[10px] md:text-xs text-gray-400 font-bold uppercase mb-1">בסיכון</div><div class="text-xl md:text-3xl font-black text-red-500" id="highRiskDisplay">0</div></div>
                 </div>
-                <div class="grid grid-cols-2 gap-8 h-96">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col"><h4 class="font-bold text-gray-700 mb-4">תקציב לפי מחלקה</h4><div class="flex-1 relative"><canvas id="budgetChart"></canvas></div></div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col"><h4 class="font-bold text-gray-700 mb-4">התפלגות סטטוסים</h4><div class="flex-1 relative"><canvas id="statusChart"></canvas></div></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
+                    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-64 md:h-80"><h4 class="font-bold text-gray-700 mb-2 text-xs md:text-sm">תקציב</h4><div class="flex-1 relative w-full h-full"><canvas id="budgetChart"></canvas></div></div>
+                    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-64 md:h-80"><h4 class="font-bold text-gray-700 mb-2 text-xs md:text-sm">עומס עובדים</h4><div class="flex-1 relative w-full h-full"><canvas id="workloadChart"></canvas></div></div>
+                    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-64 md:h-80"><h4 class="font-bold text-gray-700 mb-2 text-xs md:text-sm">סטטוס</h4><div class="flex-1 relative w-full h-full"><canvas id="statusChart"></canvas></div></div>
+                    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-64 md:h-80"><h4 class="font-bold text-gray-700 mb-2 text-xs md:text-sm">פרויקטים מובילים</h4><div class="flex-1 relative w-full h-full"><canvas id="topProjectsChart"></canvas></div></div>
+                </div>
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-72">
+                    <h4 class="font-bold text-gray-700 mb-2 text-xs md:text-sm flex items-center gap-2"><i class="fas fa-chart-line text-blue-500"></i> תחזית עומס משימות שנתי</h4>
+                    <div class="flex-1 relative w-full h-full"><canvas id="trendChart"></canvas></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="projectModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-modal">
-            <div class="bg-white px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
-                <div class="flex items-center gap-3">
-                    <button onclick="closeProjectModal()" class="text-gray-400 hover:text-gray-600 p-2"><i class="fas fa-times text-xl"></i></button>
-                    <button onclick="saveProject()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2"><i class="fas fa-save"></i> שמור</button>
-                    <button onclick="deleteProject()" class="text-red-500 bg-red-50 hover:bg-red-100 border border-red-100 px-4 py-2 rounded-xl font-bold text-sm transition flex items-center gap-2"><i class="fas fa-trash"></i> מחק</button>
+    <div id="fullProjectModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-40 p-0 md:p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-none md:rounded-2xl w-full max-w-6xl h-full md:h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-modal">
+            <div class="px-4 py-3 md:px-8 md:py-5 border-b border-gray-100 flex justify-between items-center bg-white flex-shrink-0">
+                <div class="w-2/3"><h2 id="modalProjectTitle" class="text-lg md:text-2xl font-bold text-gray-800 truncate"></h2><div class="flex items-center gap-3 mt-1 text-[10px] md:text-sm text-gray-500" id="modalProjectSub"></div></div>
+                <div class="flex gap-2">
+                    <button onclick="saveFullProject()" class="bg-blue-600 text-white p-2 md:px-6 md:py-2 rounded-xl text-xs font-bold shadow-md"><i class="fas fa-save md:hidden"></i><span class="hidden md:inline"> שמור</span></button>
+                    <button onclick="closeFullModal()" class="text-gray-400 bg-gray-50 p-2 rounded-lg"><i class="fas fa-times text-lg"></i></button>
                 </div>
-                <div class="text-left">
-                    <h2 id="mTitle" class="text-2xl font-black text-gray-800 tracking-tight"></h2>
-                    <div class="flex items-center justify-end gap-2 mt-1 text-sm text-gray-500">
-                        <span id="mDept"></span> <i class="fas fa-building text-gray-300"></i>
-                    </div>
-                </div>
+            </div>
+            <div class="flex border-b border-gray-100 px-4 bg-white gap-2 flex-shrink-0 overflow-x-auto hide-scrollbar">
+                <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active"><i class="far fa-eye ml-1"></i> סקירה</button>
+                <button onclick="switchTab('kanban')" id="tab-kanban" class="tab-btn"><i class="fas fa-tasks ml-1"></i> ניהולי</button>
+                <button onclick="switchTab('timeline')" id="tab-timeline" class="tab-btn"><i class="fas fa-stream ml-1"></i> ציר זמן</button>
+                <button onclick="switchTab('activity')" id="tab-activity" class="tab-btn"><i class="far fa-comments ml-1"></i> פעילות</button>
+                <button onclick="deleteCurrentProject()" class="tab-btn text-red-500 md:hidden"><i class="fas fa-trash"></i></button>
             </div>
             
-            <div class="bg-white border-b border-gray-100 px-6 flex justify-end shadow-sm flex-shrink-0">
-                <div onclick="switchTab('activity')" id="tab-activity" class="nav-tab">פעילות <i class="far fa-comments ml-1"></i></div>
-                <div onclick="switchTab('timeline')" id="tab-timeline" class="nav-tab">ציר זמן פנימי <i class="fas fa-stream ml-1"></i></div>
-                <div onclick="switchTab('management')" id="tab-management" class="nav-tab">ניהולי <i class="fas fa-list-check ml-1"></i></div>
-                <div onclick="switchTab('overview')" id="tab-overview" class="nav-tab active">סקירה <i class="far fa-eye ml-1"></i></div>
-            </div>
-
-            <div class="flex-1 overflow-y-auto bg-gray-50 custom-scrollbar">
-                <div id="content-overview" class="tab-content active">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between"><div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fas fa-shield-alt"></i></div><div class="text-left"><div class="text-xs font-bold text-gray-400 uppercase mb-1">רמת סיכון</div><select id="mRisk" class="font-black text-lg bg-transparent outline-none text-right w-full" dir="rtl"><option value="low">נמוכה</option><option value="medium">בינונית</option><option value="high">גבוהה</option></select></div></div>
-                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm"><div class="flex justify-between items-center mb-2 border-b border-gray-50 pb-2"><span class="font-mono font-bold text-gray-700" id="dispStart"></span><span class="text-xs text-gray-400 font-bold uppercase">התחלה:</span></div><div class="flex justify-between items-center"><span class="font-mono font-bold text-gray-700" id="dispEnd"></span><span class="text-xs text-gray-400 font-bold uppercase">יעד:</span></div></div>
-                        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between"><div class="text-3xl font-black text-blue-600" id="dispProgress">0%</div><div class="text-right"><div class="text-xs font-bold text-gray-400 uppercase">הושלם</div><input type="range" id="mProgress" class="w-24 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2" min="0" max="100" oninput="document.getElementById('dispProgress').innerText = this.value + '%'"></div></div>
-                    </div>
-                    <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-                        <h3 class="font-bold text-gray-800 text-lg mb-6 text-right border-b pb-3">עריכת פרטים</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">שם הפרויקט</label><input id="mNameInput" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תקציב (₪)</label><input type="number" id="mBudget" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 custom-scrollbar relative">
+                <div id="content-overview" class="tab-content active gap-4 md:gap-6">
+                    <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+                        <h3 class="font-bold text-gray-800 text-base mb-4 pb-2 border-b border-gray-100">עריכת פרטים</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1">שם</label><input type="text" id="editName" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none font-bold text-gray-700"></div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><label class="block text-xs font-bold text-gray-500 mb-1">התחלה</label><input type="date" id="editStartDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none"></div>
+                                <div><label class="block text-xs font-bold text-gray-500 mb-1">סיום</label><input type="date" id="editEndDate" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-xs outline-none"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><label class="block text-xs font-bold text-gray-500 mb-1">סטטוס</label><select id="editStatus" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div>
+                                <div><label class="block text-xs font-bold text-gray-500 mb-1">אחראי</label><select id="editOwner" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div>
+                            </div>
+                            <div><label class="block text-xs font-bold text-gray-500 mb-1">תקציב (₪)</label><input type="number" id="editCost" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div>
+                            <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1">תיאור</label><textarea id="editDesc" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none resize-none" rows="2"></textarea></div>
+                            <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">צוות</label><div id="viewTeamList" class="flex flex-wrap gap-2"></div></div>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך התחלה</label><input type="date" id="mStart" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"></div>
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">סטטוס</label><select id="mStatus" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"><option value="מתוכנן">מתוכנן</option><option value="בתהליך">בתהליך</option><option value="הושלם">הושלם</option><option value="עצור">עצור</option></select></div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תאריך סיום</label><input type="date" id="mEnd" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 bg-white transition"></div>
-                            <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">אחראי</label><input id="mManager" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></div>
-                        </div>
-                        <div class="mb-4"><label class="block text-xs font-bold text-gray-500 mb-1 text-right">תיאור ומטרה</label><textarea id="mDesc" rows="3" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition"></textarea></div>
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1 text-right">צוות הפרויקט</label><input id="mTeam" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none focus:border-blue-500 transition" placeholder="למשל: רונית, חגי, ירדן"></div>
                     </div>
                 </div>
-
-                <div id="content-management" class="tab-content">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
-                        <h3 class="font-bold text-gray-800 mb-4 text-right">משימות לביצוע</h3>
-                        <div class="flex gap-2 mb-4">
-                            <button onclick="addTask()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-bold hover:bg-blue-200">הוסף</button>
-                            <input type="date" id="newTaskDate" class="border border-gray-200 rounded-xl px-3 py-2 outline-none bg-white">
-                            <input type="text" id="newTaskInput" class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-right outline-none focus:border-blue-500" placeholder="משימה חדשה..." onkeypress="if(event.key === 'Enter') addTask()">
+                
+                <div id="content-kanban" class="tab-content gap-4">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="flex flex-col gap-3">
+                            <input id="newTaskInput" type="text" class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none" placeholder="משימה חדשה..." onkeypress="if(event.key === 'Enter') addTask()">
+                            <div class="flex gap-2">
+                                <input type="date" id="newTaskDate" class="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
+                                <button onclick="addTask()" class="bg-blue-100 text-blue-600 px-6 py-2 rounded-xl text-sm font-bold">הוסף</button>
+                            </div>
                         </div>
-                        <div id="tasksList" class="space-y-2"></div>
                     </div>
+                    <div id="tasksList" class="space-y-3 flex-grow overflow-y-auto pb-4"></div>
                 </div>
 
                 <div id="content-timeline" class="tab-content">
-                    <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-                        <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-2 justify-end">ציר זמן פרויקט <i class="fas fa-chart-gantt text-blue-500"></i></h3>
-                        <div id="ganttChartContainer"></div>
+                    <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                        <h3 class="font-bold text-gray-800 mb-4 text-sm md:text-base flex items-center gap-2">
+                            <i class="fas fa-stream text-blue-500"></i> פריסת משימות על ציר הזמן
+                        </h3>
+                        <div id="projectGanttContainer" class="w-full"></div>
                     </div>
                 </div>
-
-                <div id="content-activity" class="tab-content">
-                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                        <h3 class="font-bold text-gray-800 mb-4 text-right">יומן פעילות</h3>
-                        <div class="mb-4 text-right"><textarea id="newActivityInput" class="w-full border border-gray-200 rounded-xl p-3 text-right outline-none" rows="2" placeholder="עדכון חדש..."></textarea><button onclick="addActivity()" class="mt-2 bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm">שלח</button></div>
-                        <div id="activityList" class="space-y-4"></div>
+                
+                <div id="content-activity" class="tab-content gap-4">
+                    <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex-shrink-0">
+                        <textarea id="newNoteText" class="w-full bg-gray-50 border-none rounded-xl p-3 text-sm mb-2 outline-none" rows="2" placeholder="כתוב הערה..."></textarea>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(this)">
+                                <button onclick="document.getElementById('fileInput').click()" class="text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold"><i class="fas fa-paperclip"></i> צרף</button>
+                                <span id="fileNameDisplay" class="text-xs text-gray-500 truncate max-w-[100px] hidden"></span>
+                            </div>
+                            <button onclick="addActivityNote()" class="bg-blue-600 text-white px-5 py-1.5 rounded-lg text-sm font-bold">שלח</button>
+                        </div>
                     </div>
+                    <div id="activityFeed" class="space-y-3 flex-grow overflow-y-auto"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="newProjectModal" class="fixed inset-0 bg-gray-900 bg-opacity-70 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl w-full max-w-lg flex flex-col shadow-2xl animate-modal">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-blue-50 rounded-t-2xl"><h3 class="text-xl font-bold text-gray-800">פרויקט חדש</h3><button onclick="closeNewProjectModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
-            <div class="p-6 space-y-4 text-right">
-                <div><label class="block text-xs font-bold text-gray-500 mb-1">שם</label><input id="npName" class="w-full border border-gray-200 rounded-xl p-3 outline-none"></div>
-                <div><label class="block text-xs font-bold text-gray-500 mb-1">מחלקה</label><select id="npDept" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none"></select></div>
+    <div id="newProjectModal" class="fixed inset-0 bg-gray-900 bg-opacity-70 hidden items-center justify-center z-50 p-0 md:p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-none md:rounded-2xl w-full max-w-2xl h-full md:max-h-[90vh] flex flex-col shadow-2xl animate-modal">
+            <div class="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-white"><h3 class="text-lg md:text-xl font-bold text-gray-800">פרויקט חדש</h3><button onclick="document.getElementById('newProjectModal').classList.add('hidden')" class="bg-gray-50 hover:bg-gray-100 p-2 rounded-lg transition"><i class="fas fa-times text-gray-500"></i></button></div>
+            <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
+                <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">שם הפרויקט *</label><input id="npName" class="w-full border border-gray-200 rounded-xl p-3 outline-none"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">אתר</label><select id="npSite" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none"></select></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">מחלקה</label><select id="npDept" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none"></select></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">אחראי *</label><select id="npOwner" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none"></select></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">עדיפות</label><select id="npPriority" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none"><option value="low">נמוכה</option><option value="medium" selected>בינונית</option><option value="high">גבוהה</option></select></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">התחלה *</label><input type="date" id="npStart" class="w-full border border-gray-200 rounded-xl p-3 outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">סיום</label><input type="date" id="npEnd" class="w-full border border-gray-200 rounded-xl p-3 outline-none"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">עלות</label><input type="number" id="npCost" class="w-full border border-gray-200 rounded-xl p-3 outline-none" placeholder="0"></div>
+                </div>
+                <div><label class="block text-xs font-bold text-gray-500 mb-2 uppercase">שותפים</label><div id="npTeam" class="grid grid-cols-3 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100"></div></div>
             </div>
-            <div class="p-4 border-t bg-gray-50 rounded-b-2xl flex justify-end gap-3"><button onclick="closeNewProjectModal()" class="px-5 py-2 border rounded-xl hover:bg-gray-100 text-sm">ביטול</button><button onclick="createNewProject()" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold shadow-md text-sm">צור</button></div>
+            <div class="p-4 md:p-6 border-t bg-gray-50 flex justify-end gap-3"><button onclick="document.getElementById('newProjectModal').classList.add('hidden')" class="px-6 py-2.5 border rounded-xl hover:bg-gray-100 font-medium">ביטול</button><button onclick="createNewProject()" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-md hover:bg-blue-700">צור</button></div>
         </div>
     </div>
 
     <script>
-        // CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyB7U5xw_FMThsmM2hNMRnkdMYnD2cutH2s",
             authDomain: "project-manager-4702c.firebaseapp.com",
@@ -301,472 +297,322 @@
             measurementId: "G-NZHPST88NC"
         };
 
+        (function() { emailjs.init("lVJCS9f5i8YqFTNyK"); })();
+
+        const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; 
+        const TEAM_DIRECTORY = { 'ולרי': 'valery@herzliya-marina.co.il', 'חגית': 'hagits@herzliya-marina.co.il', 'רונית': 'ronit@herzliya-marina.co.il', 'יפית': 'office@herzliya-marina.co.il', 'זאנה': 'zana@herzliya-marina.co.il', 'חגי': 'hagay@herzliya-marina.co.il', 'עירא': 'iralif@herzliya-marina.co.il', 'ירדן': 'yarden.ak@herzliya-marina.co.il', 'מיכאלה': 'michaela@herzliya-marina.co.il', 'מעיין': 'maayans@herzliya-marina.co.il', 'אלכס': 'alexf@herzliya-marina.co.il' };
+        const SITES = ['מבנה מנהלה', 'מבנה מספנה', 'חוף הים', 'שובר גלים', 'אירועים', 'רציפים'];
+        const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים', 'שירות לקוחות'];
+        const STATUSES = { 'planned': {label:'מתוכנן', color:'bg-gray-100 text-gray-600', icon:'fa-calendar'}, 'in-progress': {label:'בביצוע', color:'bg-blue-100 text-blue-600', icon:'fa-spinner'}, 'blocked': {label:'אבן דרך', color:'bg-purple-100 text-purple-600', icon:'fa-flag'}, 'done': {label:'הושלם', color:'bg-green-100 text-green-600', icon:'fa-check'} };
+
+        function safeGet(id) { return document.getElementById(id); }
+        function safeVal(id, val) { const el = document.getElementById(id); if(el) { if(val!==undefined) el.value = val; return el.value; } return ''; }
+        function safeText(id, text) { const el = document.getElementById(id); if(el) el.textContent = text; }
+        function safeHTML(id, html) { const el = document.getElementById(id); if(el) el.innerHTML = html; }
+        function safeAddClass(id, cls) { const el = document.getElementById(id); if(el) el.classList.add(cls); }
+        function safeRemoveClass(id, cls) { const el = document.getElementById(id); if(el) el.classList.remove(cls); }
+
+        document.addEventListener('DOMContentLoaded', () => { try { fillDropdowns(); } catch(e) { console.error("Error init lists:", e); } });
+
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // DEPARTMENTS
-        const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים', 'שירות לקוחות'];
-        let projectsData = [];
-        let currentProject = null;
         let currentUser = null;
-        let dashCharts = {};
-        let currentCalDate = new Date();
+        let projectsData = [];
+        let currentView = 'list';
+        let currentEditingProject = null;
+        let selectedFile = null;
+        let analyticsCharts = {};
+        let isLoginMode = true;
+
+        // AUTH
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            const title = safeGet('authTitle'); const btn = safeGet('authBtn');
+            const toggleText = safeGet('authToggleText'); const toggleLink = safeGet('authToggleLink');
+            const errorDiv = safeGet('authError');
+            if(errorDiv) errorDiv.classList.add('hidden');
+            if (isLoginMode) { title.innerText = "כניסה למערכת"; btn.innerText = "התחבר"; toggleText.innerText = "אין לך חשבון? "; toggleLink.innerText = "הירשם כאן"; }
+            else { title.innerText = "הרשמה למערכת"; btn.innerText = "הירשם"; toggleText.innerText = "יש לך כבר חשבון? "; toggleLink.innerText = "התחבר כאן"; }
+        }
+        function handleAuthAction() {
+            const e = safeVal('emailInput').toLowerCase().trim(); 
+            const p = safeVal('passInput');
+            if(!e || !p) { alert('נא למלא אימייל וסיסמה'); return; }
+            const allowedEmails = [...ADMIN_EMAILS, ...Object.values(TEAM_DIRECTORY)].map(email => email.toLowerCase().trim());
+            if (!allowedEmails.includes(e)) { safeText('authError', 'גישה נדחתה: המייל אינו מופיע ברשימת המורשים.'); safeRemoveClass('authError', 'hidden'); return; }
+            const action = isLoginMode ? auth.signInWithEmailAndPassword(e, p) : auth.createUserWithEmailAndPassword(e, p);
+            action.then(() => { safeGet('emailInput').value = ''; safeGet('passInput').value = ''; safeAddClass('authError', 'hidden'); }).catch(err => { let msg = err.message; safeText('authError', msg); safeRemoveClass('authError', 'hidden'); });
+        }
 
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
-                document.getElementById('app').classList.add('flex');
-                document.getElementById('userEmailDisplay').textContent = user.email.split('@')[0];
-                initDepts();
-                loadProjects();
-            } else {
-                document.getElementById('loginScreen').classList.remove('hidden');
-                document.getElementById('app').classList.add('hidden');
-            }
+                safeAddClass('loginScreen', 'hidden'); safeRemoveClass('app', 'hidden'); safeAddClass('app', 'flex');
+                safeText('userEmailDisplay', user.email);
+                const isAdmin = ADMIN_EMAILS.includes(user.email);
+                if(isAdmin) safeRemoveClass('adminBadge', 'hidden'); else safeAddClass('adminBadge', 'hidden');
+                initApp();
+            } else { safeRemoveClass('loginScreen', 'hidden'); safeAddClass('app', 'hidden'); safeRemoveClass('app', 'flex'); }
         });
 
-        function handleLogin() {
-            const e = document.getElementById('emailInput').value;
-            const p = document.getElementById('passInput').value;
-            auth.signInWithEmailAndPassword(e, p).catch(err => {
-                document.getElementById('authError').textContent = err.message;
-                document.getElementById('authError').classList.remove('hidden');
-            });
-        }
-
-        // RESET FUNCTION (HOME BUTTON)
-        function resetDashboard() {
-            document.getElementById('filterDept').value = 'all';
-            document.getElementById('filterStatus').value = 'all';
-            switchView('list');
-            renderProjects();
-        }
-
-        function initDepts() {
-            const s = document.getElementById('npDept');
-            const f = document.getElementById('filterDept');
-            const c = document.getElementById('calDeptFilter');
-            s.innerHTML = '';
-            if(f) f.innerHTML = '<option value="all">כל המחלקות</option>';
-            if(c) c.innerHTML = '<option value="all">🏢 כל המחלקות</option>';
-            DEPARTMENTS.forEach(d => {
-                s.innerHTML += `<option value="${d}">${d}</option>`;
-                if(f) f.innerHTML += `<option value="${d}">${d}</option>`;
-                if(c) c.innerHTML += `<option value="${d}">${d}</option>`;
-            });
-        }
-
-        function loadProjects() {
+        // APP LOGIC
+        function initApp() {
             db.collection('projects').onSnapshot(snap => {
-                projectsData = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
-                if (projectsData.length === 0) initDemoProject(); 
-                renderGrid();
-                if(currentProject) {
-                    const updated = projectsData.find(p => p.id === currentProject.id);
-                    if(updated) { currentProject = updated; openProjectModal(updated.id); }
+                const allProjects = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const userEmail = currentUser.email;
+                const isAdmin = ADMIN_EMAILS.includes(userEmail);
+                projectsData = allProjects.filter(p => { if (isAdmin) return true; if (p.userId === currentUser.uid) return true; if (p.team && Array.isArray(p.team) && p.team.includes(userEmail)) return true; return false; });
+                projectsData.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                renderProjects();
+                if (currentEditingProject) { const updated = projectsData.find(p => p.id === currentEditingProject.id); if(updated) { currentEditingProject = updated; refreshModalUI(); } }
+            });
+        }
+
+        function fillDropdowns() {
+            const populate = (id, list) => { const el = document.getElementById(id); if(el) el.innerHTML = list.map(i => `<option value="${i}">${i}</option>`).join(''); };
+            const names = Object.keys(TEAM_DIRECTORY);
+            populate('npSite', SITES); populate('npDept', DEPARTMENTS); populate('npOwner', names);
+            const editOwner = document.getElementById('editOwner'); if(editOwner) editOwner.innerHTML = names.map(m => `<option value="${m}">${m}</option>`).join('');
+            const editStatus = document.getElementById('editStatus'); if(editStatus) editStatus.innerHTML = Object.keys(STATUSES).map(k => `<option value="${k}">${STATUSES[k].label}</option>`).join('');
+            const teamContainer = document.getElementById('npTeam'); 
+            if(teamContainer) { teamContainer.innerHTML = names.map(name => { const email = TEAM_DIRECTORY[name]; return `<label class="flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border hover:bg-blue-50 transition"><input type="checkbox" value="${email}" class="rounded text-blue-600 w-4 h-4"><span class="text-xs font-bold text-gray-700">${name}</span></label>`; }).join(''); }
+            const depFilter = document.getElementById('filterDept'); if(depFilter) { depFilter.innerHTML = '<option value="all">כל המחלקות</option>'; DEPARTMENTS.forEach(d => depFilter.innerHTML += `<option value="${d}">${d}</option>`); }
+            const statFilter = document.getElementById('filterStatus'); if(statFilter) { statFilter.innerHTML = '<option value="all">כל הסטטוסים</option>'; Object.keys(STATUSES).forEach(k => statFilter.innerHTML += `<option value="${k}">${STATUSES[k].label}</option>`); }
+            const ganttDept = document.getElementById('ganttDeptFilter'); if(ganttDept) { ganttDept.innerHTML = '<option value="all">🏢 כל המחלקות</option>'; DEPARTMENTS.forEach(d => ganttDept.innerHTML += `<option value="${d}">${d}</option>`); }
+        }
+
+        function renderProjects() {
+            const container = safeGet('mainContent'); if(!container) return;
+            const dept = safeVal('filterDept'); const status = safeVal('filterStatus');
+            const filtered = projectsData.filter(p => { if(dept !== 'all' && p.department !== dept) return false; if(status !== 'all' && p.status !== status) return false; return true; });
+            if (currentView === 'list') { updateViewButtons('list'); container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${filtered.map(p => createProjectCardHTML(p)).join('')}</div>`; } 
+            else { updateViewButtons('kanban'); const cols = Object.keys(STATUSES).map(k => { const items = filtered.filter(p => p.status === k); return `<div class="bg-gray-50 p-4 rounded-2xl min-w-[280px] h-fit border border-gray-200"><h3 class="font-bold text-gray-700 mb-4 flex justify-between items-center px-1"><span class="flex items-center gap-2"><i class="fas ${STATUSES[k].icon} text-gray-400"></i> ${STATUSES[k].label}</span><span class="bg-white text-gray-600 text-xs px-2.5 py-1 rounded-lg shadow-sm border border-gray-100 font-mono">${items.length}</span></h3><div class="space-y-3">${items.map(p => createProjectCardHTML(p)).join('')}</div></div>`; }).join(''); container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto pb-4">${cols}</div>`; }
+        }
+
+        function createProjectCardHTML(p) {
+            const s = STATUSES[p.status] || STATUSES['planned'];
+            const tasks = p.tasks || [];
+            const done = tasks.filter(t => t.done).length;
+            const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
+            let risk = ''; if(p.status === 'blocked') risk = `<div class="mt-4 pt-3 border-t border-gray-50 text-red-600 bg-red-50 p-2 rounded-lg text-xs font-bold flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i> חסום / סיכון גבוה</div>`; else if (progress < 50 && p.endDate && new Date(p.endDate) < new Date()) risk = `<div class="mt-4 pt-3 border-t border-gray-50 text-yellow-600 bg-yellow-50 p-2 rounded-lg text-xs font-bold flex items-center gap-2"><i class="fas fa-bolt"></i> סיכון בינוני</div>`;
+            const teamCount = p.team ? p.team.length : 0;
+            return `<div onclick="openFullProject('${p.id}')" class="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1 relative group"><div class="flex justify-between items-start mb-4"><div><h3 class="font-bold text-gray-800 text-lg mb-1 group-hover:text-blue-600 transition">${p.name}</h3><p class="text-xs text-gray-500 flex items-center gap-1.5"><i class="fas fa-map-marker-alt text-gray-300"></i> ${p.site}</p></div><span class="px-3 py-1 rounded-lg text-xs font-bold ${s.color} border border-black/5 shadow-sm">${s.label}</span></div><div class="space-y-3 mb-5"><div class="flex items-center text-xs text-gray-600 gap-2 bg-gray-50 p-2 rounded-lg"><i class="fas fa-users w-4 text-center text-gray-400"></i> ${teamCount} שותפים</div><div class="flex items-center text-xs text-gray-600 gap-2 bg-gray-50 p-2 rounded-lg"><i class="fas fa-calendar-alt w-4 text-center text-gray-400"></i> <span dir="ltr">${p.startDate || '?'} -> ${p.endDate || '?'}</span></div></div><div class="mb-2"><div class="flex justify-between text-xs mb-1.5"><span class="text-gray-500 font-medium">התקדמות ביצוע</span><span class="font-bold text-blue-600">${progress}%</span></div><div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div class="h-full bg-blue-600 rounded-full shadow-sm" style="width: ${progress}%"></div></div></div>${risk}</div>`;
+        }
+
+        function openFullProject(id) {
+            currentEditingProject = projectsData.find(p => p.id === id); if (!currentEditingProject) return;
+            safeText('modalProjectTitle', currentEditingProject.name);
+            safeHTML('modalProjectSub', `<i class="fas fa-building text-gray-300"></i> ${currentEditingProject.site} <span class="mx-2 text-gray-200">|</span> <i class="fas fa-briefcase text-gray-300"></i> ${currentEditingProject.department}`);
+            safeVal('editName', currentEditingProject.name); safeVal('editCost', currentEditingProject.estimatedCost); safeVal('editStatus', currentEditingProject.status); safeVal('editOwner', currentEditingProject.owner); safeVal('editStartDate', currentEditingProject.startDate || ''); safeVal('editEndDate', currentEditingProject.endDate || ''); safeVal('editDesc', currentEditingProject.objective || '');
+            refreshModalUI(); switchTab('overview'); safeRemoveClass('fullProjectModal', 'hidden'); safeAddClass('fullProjectModal', 'flex');
+        }
+
+        function refreshModalUI() {
+            const tasks = currentEditingProject.tasks || [];
+            const done = tasks.filter(t => t.done).length;
+            const progress = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
+            safeText('statProgress', progress + '%'); const pBar = safeGet('statProgressBar'); if(pBar) pBar.style.width = progress + '%';
+            safeText('viewStartDate', currentEditingProject.startDate || '-'); safeText('viewEndDate', currentEditingProject.endDate || '-');
+            let risk = 'נמוכה'; if (currentEditingProject.status === 'blocked') risk = 'גבוהה'; safeText('statRisk', risk);
+            const teamContainer = safeGet('viewTeamList');
+            if (teamContainer) {
+                const team = currentEditingProject.team || [];
+                if (team.length === 0) { teamContainer.innerHTML = '<span class="text-gray-400 text-sm">אין שותפים נוספים</span>'; } 
+                else {
+                    const hebrewMapping = { 'alex': 'אלכס', 'alexf': 'אלכס', 'hagay': 'חגי', 'valery': 'ולרי', 'ronit': 'רונית', 'hagits': 'חגית', 'hagit': 'חגית', 'maayans': 'מעיין', 'maayan': 'מעיין', 'yarden': 'ירדן', 'michaela': 'מיכאלה', 'iralif': 'עירא', 'ira': 'עירא', 'zana': 'זאנה', 'office': 'יפית', 'yafit': 'יפית' };
+                    const names = team.map(email => { const foundName = Object.keys(TEAM_DIRECTORY).find(key => TEAM_DIRECTORY[key].toLowerCase().trim() === email.toLowerCase().trim()); if (foundName) return foundName; const shortName = email.split('@')[0].toLowerCase(); if (hebrewMapping[shortName]) return hebrewMapping[shortName]; return shortName; });
+                    teamContainer.innerHTML = names.map(n => `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold shadow-sm">${n}</span>`).join('');
                 }
-                if(!document.getElementById('calendarModal').classList.contains('hidden')) renderCalendar();
-            });
-        }
-        
-        function initDemoProject() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const d1 = `${year}-${month}-01`;
-            const d2 = `${year}-${month}-28`;
-            const t1 = `${year}-${month}-04`; 
-            const t2 = `${year}-${month}-06`;
-            
-            db.collection('projects').add({
-                name: 'הקמת מרכז מבקרים - חוף הים',
-                department: 'נכסים',
-                status: 'בתהליך',
-                progress: 35,
-                budget: 1500000,
-                risk: 'medium',
-                startDate: d1,
-                endDate: d2,
-                manager: 'ישראל ישראלי',
-                description: 'פרויקט דגל של החברה העירונית לפיתוח התיירות.',
-                tasks: [
-                    { text: 'אישור ביצוע הצעת המחיר', date: t1, done: true },
-                    { text: 'קבלת הצעת מחיר ספקים', date: t2, done: true },
-                    { text: 'סיור קבלנים', date: `${year}-${month}-15`, done: false }
-                ],
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        function renderGrid() {
-            const container = document.getElementById('projectsGrid');
-            const filterDept = document.getElementById('filterDept').value;
-            const filterStat = document.getElementById('filterStatus').value;
-            
-            let filtered = projectsData;
-            if (filterDept !== 'all') filtered = filtered.filter(p => p.department === filterDept);
-            if (filterStat !== 'all') filtered = filtered.filter(p => p.status === filterStat);
-
-            if(filtered.length === 0) { container.innerHTML = `<div class="col-span-full text-center py-20 text-gray-400">אין פרויקטים להצגה</div>`; return; }
-            
-            container.innerHTML = filtered.map(p => {
-                const name = p.name || 'ללא שם';
-                const status = p.status || 'planned';
-                const dept = p.department || 'כללי';
-                const end = p.endDate ? `יעד: ${p.endDate}` : '---';
-                const progress = p.progress || 0;
-                const budget = p.budget || 0;
-
-                let statusHeb = status;
-                if(status === 'planned') statusHeb = 'מתוכנן';
-
-                return `
-                <div onclick="openProjectModal('${p.id}')" class="project-card p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="text-xs text-gray-400 font-mono">${end}</div>
-                        <div class="flex gap-2">
-                            <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold">${dept}</span>
-                            <span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-bold">${statusHeb}</span>
-                        </div>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2 text-right">${name}</h3>
-                    <div class="mt-auto pt-4 border-t border-gray-50">
-                        <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2">
-                            <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${progress}%"></div>
-                        </div>
-                        <div class="flex justify-between items-center text-xs text-gray-500">
-                            <span>₪${parseInt(budget).toLocaleString()}</span>
-                            <span>${progress}% הושלם</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        // ================= CALENDAR =================
-        function openCalendarModal() {
-            currentCalDate = new Date();
-            renderCalendar();
-            document.getElementById('calendarModal').classList.remove('hidden');
-            document.getElementById('calendarModal').classList.add('flex');
-        }
-
-        function changeMonth(delta) {
-            currentCalDate.setMonth(currentCalDate.getMonth() + delta);
-            renderCalendar();
-        }
-
-        function renderCalendar() {
-            const year = currentCalDate.getFullYear();
-            const month = currentCalDate.getMonth();
-            const filter = document.getElementById('calDeptFilter').value;
-
-            document.getElementById('calMonthYear').innerText = currentCalDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
-
-            const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const container = document.getElementById('calendarBody');
-            container.innerHTML = '';
-
-            for (let i = 0; i < firstDay; i++) {
-                container.innerHTML += `<div class="calendar-day other-month"></div>`;
             }
+            const activeTab = document.querySelector('.tab-content.active');
+            if (activeTab && activeTab.id === 'content-kanban') renderTasksList();
+            if (activeTab && activeTab.id === 'content-activity') renderActivityFeed();
+            if (activeTab && activeTab.id === 'content-timeline') renderProjectGanttChart(); 
+        }
 
+        function switchTab(name) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); safeAddClass(`tab-${name}`, 'active'); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); safeAddClass(`content-${name}`, 'active'); refreshModalUI(); }
+        function syncData() { currentEditingProject.name = safeVal('editName'); currentEditingProject.estimatedCost = safeVal('editCost'); safeText('modalProjectTitle', currentEditingProject.name); currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate'); currentEditingProject.status = safeVal('editStatus'); currentEditingProject.owner = safeVal('editOwner'); currentEditingProject.objective = safeVal('editDesc'); refreshModalUI(); }
+
+        // --- GANTT CALENDAR LOGIC (MAIN) ---
+        let ganttCurrentDate = new Date();
+        let expandedProjects = new Set(); 
+        function openGanttModal() { ganttCurrentDate = new Date(); renderGanttCalendar(); safeRemoveClass('ganttModal', 'hidden'); safeAddClass('ganttModal', 'flex'); }
+        function changeGanttMonth(offset) { ganttCurrentDate.setMonth(ganttCurrentDate.getMonth() + offset); renderGanttCalendar(); }
+        function toggleGanttExpand(projectId) { if (expandedProjects.has(projectId)) { expandedProjects.delete(projectId); } else { expandedProjects.add(projectId); } renderGanttCalendar(); }
+
+        function renderGanttCalendar() {
+            const gridContainer = document.getElementById('calendarGrid'); if(!gridContainer) return;
+            gridContainer.innerHTML = '';
+            const year = ganttCurrentDate.getFullYear(); const month = ganttCurrentDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate(); const today = new Date(); today.setHours(0,0,0,0);
+            const monthNames = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
+            document.getElementById('ganttMonthLabel').textContent = `${monthNames[month]} ${year}`;
+            const deptFilter = document.getElementById('ganttDeptFilter') ? document.getElementById('ganttDeptFilter').value : 'all';
             const relevantProjects = projectsData.filter(p => {
-                if (filter !== 'all' && p.department !== filter) return false;
-                if (!p.startDate || !p.endDate) return false;
-                const pStart = new Date(p.startDate);
-                const pEnd = new Date(p.endDate);
-                const monthStart = new Date(year, month, 1);
-                const monthEnd = new Date(year, month + 1, 0);
-                return pStart <= monthEnd && pEnd >= monthStart;
-            }).sort((a,b) => new Date(a.startDate) - new Date(b.startDate));
+                if(deptFilter !== 'all' && p.department !== deptFilter) return false;
+                if(!p.startDate || !p.endDate) return false;
+                const pStart = new Date(p.startDate); const pEnd = new Date(p.endDate);
+                const monthStart = new Date(year, month, 1); const monthEnd = new Date(year, month, daysInMonth);
+                return (pStart <= monthEnd && pEnd >= monthStart);
+            });
 
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-                const checkDate = new Date(year, month, day);
-                const isToday = new Date().toDateString() === checkDate.toDateString();
-                
-                let dayHTML = `<div class="calendar-day ${isToday ? 'today' : ''}"><span class="day-number">${day}</span><div class="event-bar-container">`;
-                
+            const scrollArea = document.createElement('div'); scrollArea.className = 'timeline-scroll-area custom-scrollbar';
+            let headerHTML = `<div class="timeline-header"><div class="sticky-col border-b">פרויקט</div>`; 
+            for(let i = 1; i <= daysInMonth; i++) {
+                const dateObj = new Date(year, month, i); const isWeekend = dateObj.getDay() === 5 || dateObj.getDay() === 6; const bgClass = isWeekend ? 'bg-gray-100' : '';
+                headerHTML += `<div class="timeline-header-cell ${bgClass}">${i}</div>`;
+            }
+            headerHTML += `</div>`;
+
+            let bodyHTML = `<div class="timeline-body"><div class="timeline-track" style="right: 160px; left:0;"></div>`; 
+            if (relevantProjects.length === 0) { bodyHTML += `<div class="p-10 text-center text-gray-400">אין פרויקטים לחודש זה</div>`; } 
+            else {
                 relevantProjects.forEach(p => {
-                    const pStart = new Date(p.startDate);
-                    const pEnd = new Date(p.endDate);
-                    
-                    if (checkDate >= pStart && checkDate <= pEnd) {
-                        let statusClass = 'cal-active';
-                        if (p.status === 'מתוכנן' || p.status === 'planned') statusClass = 'cal-planned';
-                        if (p.status === 'הושלם') statusClass = 'cal-done';
-                        if (p.status === 'עצור') statusClass = 'cal-blocked';
+                    const pStart = new Date(p.startDate); const pEnd = new Date(p.endDate);
+                    const viewStart = new Date(year, month, 1); const viewEnd = new Date(year, month, daysInMonth);
+                    const actualStart = pStart < viewStart ? viewStart : pStart; const actualEnd = pEnd > viewEnd ? viewEnd : pEnd;
+                    const startDay = actualStart.getDate(); const endDay = actualEnd.getDate();
+                    const durationDays = (endDay - startDay) + 1;
+                    const dayWidth = 41; const leftPos = (startDay - 1) * dayWidth; const widthPx = durationDays * dayWidth;
+                    let barColor = 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)'; 
+                    if(p.status === 'blocked') barColor = 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)'; 
+                    if(p.status === 'done') barColor = 'linear-gradient(90deg, #10b981 0%, #059669 100%)'; 
+                    if(p.status === 'planned') barColor = 'linear-gradient(90deg, #9ca3af 0%, #6b7280 100%)'; 
+                    const isExpanded = expandedProjects.has(p.id); const expandIcon = isExpanded ? '<i class="fas fa-minus"></i>' : '<i class="fas fa-plus"></i>';
+                    let cellsHTML = ''; for(let i=1; i<=daysInMonth; i++) { const d = new Date(year, month, i); const isW = d.getDay()===5 || d.getDay()===6; cellsHTML += `<div style="width:40px; border-right:1px solid #f3f4f6; flex-shrink:0; background:${isW?'#f9fafb':'transparent'}"></div>`; }
 
-                        let shapeClass = 'is-middle';
-                        if (checkDate.getTime() === pStart.getTime()) shapeClass = 'is-start';
-                        if (checkDate.getTime() === pEnd.getTime()) shapeClass = 'is-end';
-                        if (pStart.getTime() === pEnd.getTime()) shapeClass = 'rounded-md mx-0.5'; 
+                    bodyHTML += `<div class="timeline-row"><div class="sticky-col"><div class="expand-btn" onclick="toggleGanttExpand('${p.id}')">${expandIcon}</div><span class="truncate pr-2 font-bold text-gray-700" title="${p.name}">${p.name}</span></div><div style="display:flex; position:relative; flex:1;">${cellsHTML}<div class="timeline-bar" onclick="openFullProject('${p.id}')" style="left: ${leftPos}px; width: ${widthPx}px; background: ${barColor};">${p.name}</div></div></div>`;
 
-                        const isSunday = checkDate.getDay() === 0;
-                        const isFirstDayOfMonth = day === 1;
-                        const isProjectStart = checkDate.getTime() === pStart.getTime();
-                        
-                        let label = '&nbsp;';
-                        if (isProjectStart || isSunday || isFirstDayOfMonth) {
-                            label = p.name;
-                        }
-
-                        dayHTML += `<div onclick="openProjectModal('${p.id}')" class="cal-event-segment ${statusClass} ${shapeClass}" title="${p.name}">
-                            ${label}
-                        </div>`;
-                    }
-                });
-
-                relevantProjects.forEach(p => {
-                    if (p.tasks) {
-                        p.tasks.forEach(t => {
-                            if (t.date && t.date === dateStr) {
-                                dayHTML += `<div class="task-marker" title="${t.text} (${p.name})"><span class="task-dot"></span>${t.text}</div>`;
+                    if (isExpanded && p.tasks && p.tasks.length > 0) {
+                        p.tasks.forEach(task => {
+                            if(task.dueDate) {
+                                const tDate = new Date(task.dueDate);
+                                if(tDate.getMonth() === month && tDate.getFullYear() === year) {
+                                    const tDay = tDate.getDate(); const tLeft = (tDay - 1) * dayWidth + (dayWidth/2);
+                                    let stoneColor = '#facc15'; if(task.done) stoneColor = '#22c55e'; else if(tDate < today) stoneColor = '#ef4444';
+                                    bodyHTML += `<div class="timeline-row task-row"><div class="sticky-col bg-gray-50"><span class="truncate pl-4 text-gray-500" title="${task.name}"><i class="fas fa-level-up-alt rotate-90 ml-2"></i> ${task.name}</span></div><div style="display:flex; position:relative; flex:1;">${cellsHTML}<div class="gantt-milestone" style="left:${tLeft}px; background-color:${stoneColor};" title="${task.name}"></div></div></div>`;
+                                }
                             }
                         });
                     }
                 });
-
-                dayHTML += `</div></div>`;
-                container.innerHTML += dayHTML;
             }
+            bodyHTML += `</div>`; scrollArea.innerHTML = headerHTML + bodyHTML; gridContainer.appendChild(scrollArea);
         }
 
-        // VIEW & RENDER
-        function switchView(view) {
-            const btnGrid = document.getElementById('viewBtnList');
-            const btnKanban = document.getElementById('viewBtnKanban');
-            const container = document.getElementById('projectsGrid');
+        function downloadGanttImage() {
+            const element = document.querySelector('#ganttModal > div'); if (!element) return;
+            const stickies = document.querySelectorAll('.sticky-col'); stickies.forEach(el => { el.style.position = 'static'; el.style.border = '1px solid #eee'; });
+            const scrollArea = document.querySelector('.timeline-scroll-area'); const originalOverflow = scrollArea.style.overflow; scrollArea.style.overflow = 'visible'; 
+            html2canvas(element, { scale: 2, backgroundColor: "#ffffff", useCORS: true }).then(canvas => { stickies.forEach(el => el.style.position = ''); scrollArea.style.overflow = originalOverflow; const link = document.createElement('a'); link.download = `Project-Gantt-${new Date().toLocaleDateString('he-IL').replace(/\./g, '-')}.png`; link.href = canvas.toDataURL("image/png"); link.click(); }).catch(err => { console.error(err); alert("שגיאה בצילום"); });
+        }
+
+        // --- FIXED INTERNAL TIMELINE FUNCTION ---
+        function renderProjectGanttChart() {
+            const container = safeGet('projectGanttContainer'); // <--- Fixed ID here!
+            if(!container) return;
+            const p = currentEditingProject;
+            if(!p.startDate || !p.endDate) { container.innerHTML = '<div class="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed flex flex-col items-center gap-2"><i class="far fa-calendar-times text-2xl"></i><span>נא להגדיר תאריכי התחלה וסיום</span></div>'; return; }
+
+            const start = new Date(p.startDate);
+            const end = new Date(p.endDate);
+            const totalTime = end - start;
+            const today = new Date();
+            const sStr = start.toLocaleDateString('he-IL');
+            const eStr = end.toLocaleDateString('he-IL');
             
-            if (view === 'list') {
-                btnGrid.classList.add('bg-white', 'shadow', 'text-gray-800'); btnGrid.classList.remove('text-gray-500');
-                btnKanban.classList.remove('bg-white', 'shadow', 'text-gray-800'); btnKanban.classList.add('text-gray-500');
-                renderGrid();
-            } else if (view === 'kanban') {
-                btnKanban.classList.add('bg-white', 'shadow', 'text-gray-800'); btnKanban.classList.remove('text-gray-500');
-                btnGrid.classList.remove('bg-white', 'shadow', 'text-gray-800'); btnGrid.classList.add('text-gray-500');
-                
-                const filtered = projectsData; 
-                const cols = ['מתוכנן', 'בתהליך', 'הושלם', 'עצור'].map(k => {
-                    const items = filtered.filter(p => (p.status === k) || (k==='מתוכנן' && p.status==='planned'));
-                    return `<div class="bg-gray-50 p-4 rounded-2xl min-w-[280px] h-fit border border-gray-200"><h3 class="font-bold text-gray-700 mb-4 px-1 text-right">${k} <span class="bg-white text-gray-600 text-xs px-2 rounded border">${items.length}</span></h3><div class="space-y-3">${items.map(p => 
-                        `<div onclick="openProjectModal('${p.id}')" class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md"><h4 class="font-bold text-sm text-gray-800 text-right">${p.name}</h4><div class="text-xs text-gray-500 mt-1 text-right">${p.department || ''}</div></div>`
-                    ).join('')}</div></div>`;
-                }).join('');
-                container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-4 gap-6 overflow-x-auto pb-4">${cols}</div>`;
+            let milestonesHTML = '';
+            if (p.tasks && p.tasks.length > 0) {
+                p.tasks.forEach(task => {
+                    if (task.dueDate) {
+                        const tDate = new Date(task.dueDate);
+                        let percent = 0;
+                        if (totalTime > 0) { percent = ((tDate - start) / totalTime) * 100; }
+                        if (percent < 0) percent = 0; if (percent > 100) percent = 100;
+                        let color = '#facc15'; if (task.done) color = '#22c55e'; else if (tDate < today) color = '#ef4444';
+                        milestonesHTML += `<div class="mini-milestone" style="left: ${percent}%; background-color: ${color};" title="${task.name} (${tDate.toLocaleDateString('he-IL')})"></div>`;
+                    }
+                });
             }
-        }
 
-        // DASHBOARD
-        function openDashboard() {
-            let totalBudget = 0; let activeCount = 0; let deptBudget = {}; let statusCount = {};
-            projectsData.forEach(p => {
-                const b = parseInt(p.budget || 0); totalBudget += b;
-                const s = p.status || 'other'; if(s === 'בתהליך') activeCount++;
-                statusCount[s] = (statusCount[s] || 0) + 1;
-                const d = p.department || 'כללי'; deptBudget[d] = (deptBudget[d] || 0) + b;
-            });
-            document.getElementById('dashTotalBudget').innerText = '₪' + totalBudget.toLocaleString();
-            document.getElementById('dashTotalProjects').innerText = projectsData.length;
-            document.getElementById('dashActiveProjects').innerText = activeCount;
+            let progressPercent = 0;
+            if (today > start) { progressPercent = ((today - start) / totalTime) * 100; if (progressPercent > 100) progressPercent = 100; }
+            if (totalTime <= 0) progressPercent = 0;
 
-            if(dashCharts.budget) dashCharts.budget.destroy();
-            const ctx1 = document.getElementById('budgetChart').getContext('2d');
-            dashCharts.budget = new Chart(ctx1, { type: 'bar', data: { labels: Object.keys(deptBudget), datasets: [{ label: 'תקציב', data: Object.values(deptBudget), backgroundColor: '#8b5cf6', borderRadius: 6 }] }, options: { responsive: true } });
-
-            if(dashCharts.status) dashCharts.status.destroy();
-            const ctx2 = document.getElementById('statusChart').getContext('2d');
-            dashCharts.status = new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(statusCount), datasets: [{ data: Object.values(statusCount), backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f59e0b'] }] }, options: { responsive: true, cutout: '70%' } });
-
-            document.getElementById('analyticsModal').classList.remove('hidden');
-            document.getElementById('analyticsModal').classList.add('flex');
-        }
-
-        // MODAL LOGIC
-        function openProjectModal(id) {
-            const p = projectsData.find(x => x.id === id);
-            if(!p) return;
-            currentProject = p;
-
-            document.getElementById('mTitle').innerText = p.name;
-            document.getElementById('mDept').innerText = p.department || 'כללי';
-            document.getElementById('mRisk').value = p.risk || 'low';
-            document.getElementById('mProgress').value = p.progress || 0;
-            document.getElementById('dispProgress').innerText = (p.progress || 0) + '%';
-            document.getElementById('dispStart').innerText = p.startDate || '--';
-            document.getElementById('dispEnd').innerText = p.endDate || '--';
-
-            document.getElementById('mNameInput').value = p.name || '';
-            document.getElementById('mBudget').value = p.budget || '';
-            document.getElementById('mStart').value = p.startDate || '';
-            document.getElementById('mEnd').value = p.endDate || '';
-            
-            let cleanStatus = p.status;
-            if(cleanStatus === 'planned') cleanStatus = 'מתוכנן';
-            document.getElementById('mStatus').value = cleanStatus;
-            
-            document.getElementById('mManager').value = p.manager || '';
-            document.getElementById('mDesc').value = p.description || '';
-            document.getElementById('mTeam').value = p.team || '';
-
-            renderLists();
-            renderInternalGantt();
-            switchTab('overview');
-            document.getElementById('projectModal').classList.remove('hidden');
-            document.getElementById('projectModal').classList.add('flex');
-        }
-
-        function closeProjectModal() {
-            document.getElementById('projectModal').classList.add('hidden');
-            document.getElementById('projectModal').classList.remove('flex');
-            currentProject = null;
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            document.getElementById(`content-${tabName}`).classList.add('active');
-        }
-
-        function renderLists() {
-            const tasks = currentProject.tasks || [];
-            document.getElementById('tasksList').innerHTML = tasks.map((t, i) => `
-                <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-1">
-                    <div class="flex items-center gap-2">
-                        <button onclick="deleteTask(${i})" class="text-gray-300 hover:text-red-500"><i class="fas fa-times"></i></button>
-                        <div class="flex flex-col text-right">
-                            <span class="${t.done ? 'line-through text-gray-400' : ''} text-sm font-bold">${t.text}</span>
-                            <span class="text-xs text-gray-400">${t.date ? 'יעד: ' + t.date : ''}</span>
-                        </div>
+            container.innerHTML = `
+                <div class="relative pt-6 pb-2 px-2">
+                    <div class="flex justify-between text-xs text-gray-500 mb-2 font-mono font-bold"><span><i class="far fa-play-circle"></i> ${sStr}</span><span><i class="far fa-flag"></i> ${eStr}</span></div>
+                    <div class="project-timeline-track">
+                        <div class="absolute top-0 bottom-0 right-0 bg-blue-50 border-l border-blue-100" style="width: ${progressPercent}%"></div>
+                        <div class="project-timeline-bar" style="width: ${p.progress || 0}%"><span class="absolute left-2 text-white text-xs drop-shadow-md">${p.progress}%</span></div>
+                        ${milestonesHTML}
                     </div>
-                    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})" class="cursor-pointer">
-                </div>`).join('');
-
-            const acts = currentProject.activity || [];
-            const sortedActs = [...acts].sort((a,b) => new Date(b.date) - new Date(a.date));
-            document.getElementById('activityList').innerHTML = sortedActs.map(a => `
-                <div class="bg-gray-50 p-3 rounded-xl">
-                    <div class="flex justify-between text-xs text-gray-400 mb-1">
-                        <span dir="ltr">${new Date(a.date).toLocaleString('he-IL')}</span>
-                        <span class="font-bold">${a.user.split('@')[0]}</span>
+                    <div class="mt-3 flex justify-center gap-4 text-[10px] text-gray-400">
+                        <span class="flex items-center gap-1"><div class="w-2 h-2 bg-green-500 transform rotate-45"></div> בוצע</span>
+                        <span class="flex items-center gap-1"><div class="w-2 h-2 bg-red-500 transform rotate-45"></div> איחור</span>
+                        <span class="flex items-center gap-1"><div class="w-2 h-2 bg-yellow-400 transform rotate-45"></div> יעד</span>
                     </div>
-                    <div class="text-sm text-gray-700 text-right">${a.text}</div>
-                </div>`).join('');
+                </div>
+            `;
         }
 
-        function renderInternalGantt() {
-            const container = document.getElementById('ganttChartContainer');
-            if(!currentProject.startDate || !currentProject.endDate) { container.innerHTML = '<div class="text-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed flex flex-col items-center gap-2"><span>נא להגדיר תאריכים ב"סקירה" להצגת ציר זמן</span></div>'; return; }
-            const start = new Date(currentProject.startDate); const end = new Date(currentProject.endDate); const totalMs = end - start; const now = new Date();
-            let percentPassed = 0; if(now > start) percentPassed = Math.min(100, ((now - start) / totalMs) * 100); if(totalMs <= 0) percentPassed = 0;
-            const sStr = start.toLocaleDateString('he-IL'); const eStr = end.toLocaleDateString('he-IL');
-            container.innerHTML = `<div class="relative pt-8 pb-4"><div class="flex justify-between text-xs text-gray-500 mb-2 font-mono px-1"><span><i class="far fa-play-circle"></i> ${sStr}</span><span><i class="far fa-flag"></i> ${eStr}</span></div><div class="gantt-track"><div class="absolute top-0 bottom-0 right-0 bg-blue-100 border-l border-blue-200" style="width: ${percentPassed}%"></div><div class="gantt-bar absolute top-1 bottom-1 right-1" style="width: ${currentProject.progress || 0}%"><span class="absolute left-2 text-white font-bold text-xs drop-shadow-md top-1/2 -translate-y-1/2">${currentProject.progress}%</span></div></div></div>`;
+        // --- Rest of functions ---
+        function renderTasksList() {
+            const list = safeGet('tasksList'); if(!list) return;
+            const tasks = currentEditingProject.tasks || [];
+            if(tasks.length === 0) { list.innerHTML = `<div class="flex flex-col items-center justify-center h-48 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200"><i class="fas fa-clipboard-check text-4xl mb-3 opacity-20"></i><span class="text-sm">אין משימות לביצוע.</span></div>`; return; }
+            list.innerHTML = tasks.map((t, idx) => {
+                let dateBadge = '';
+                if(t.dueDate) {
+                    const dateObj = new Date(t.dueDate); const dateStr = dateObj.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+                    const isOverdue = new Date() > dateObj && !t.done;
+                    const colorClass = isOverdue ? 'bg-red-50 text-red-600 border-red-100' : 'bg-gray-50 text-gray-500 border-gray-100';
+                    dateBadge = `<div class="flex items-center gap-1.5 px-2 py-1 rounded-md border text-xs font-mono ${colorClass}"><i class="far fa-clock text-[10px]"></i> ${dateStr}</div>`;
+                }
+                return `<div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group flex items-center justify-between"><div class="flex items-center gap-4"><div onclick="toggleTask(${idx})" class="w-6 h-6 rounded-full border-2 ${t.done ? 'bg-green-500 border-green-500' : 'border-gray-200 group-hover:border-blue-400'} flex items-center justify-center cursor-pointer transition flex-shrink-0">${t.done ? '<i class="fas fa-check text-white text-xs"></i>' : ''}</div><div><span class="${t.done ? 'line-through text-gray-400' : 'text-gray-800 font-medium'} text-sm block mb-1">${t.name}</span><div class="flex items-center gap-2"><span class="text-xs text-gray-400 flex items-center gap-1"><i class="fas fa-user-circle"></i> ${t.assignee || 'לא הוקצה'}</span></div></div></div><div class="flex items-center gap-3">${dateBadge}<button onclick="deleteTask(${idx})" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 transition"><i class="fas fa-trash-alt"></i></button></div></div>`;
+            }).join('');
         }
-
-        // CRUD
-        function saveProject() {
-            if(!currentProject) return;
-            const data = {
-                risk: document.getElementById('mRisk').value,
-                progress: document.getElementById('mProgress').value,
-                name: document.getElementById('mNameInput').value,
-                budget: document.getElementById('mBudget').value,
-                startDate: document.getElementById('mStart').value,
-                endDate: document.getElementById('mEnd').value,
-                status: document.getElementById('mStatus').value,
-                manager: document.getElementById('mManager').value,
-                description: document.getElementById('mDesc').value,
-                team: document.getElementById('mTeam').value
-            };
-            db.collection('projects').doc(currentProject.id).update(data).then(() => {
-                alert('השינויים נשמרו בהצלחה!');
-                closeProjectModal();
-            });
-        }
-
-        function deleteProject() {
-            if(confirm('למחוק את הפרויקט לצמיתות?')) {
-                db.collection('projects').doc(currentProject.id).delete().then(() => closeProjectModal());
-            }
-        }
-
         function addTask() {
-            const txt = document.getElementById('newTaskInput').value;
-            const date = document.getElementById('newTaskDate').value;
-            if(!txt) return;
-            const newTasks = [...(currentProject.tasks || []), { text: txt, date: date, done: false }];
-            db.collection('projects').doc(currentProject.id).update({ tasks: newTasks });
-            document.getElementById('newTaskInput').value = '';
-            document.getElementById('newTaskDate').value = '';
+            const input = safeGet('newTaskInput'); const dateInput = safeGet('newTaskDate');
+            if(!input || !input.value.trim()) return;
+            if (!currentEditingProject.tasks) currentEditingProject.tasks = [];
+            let currentUserName = 'לא הוקצה';
+            if (currentUser && currentUser.email) {
+                const directoryName = Object.keys(TEAM_DIRECTORY).find(key => TEAM_DIRECTORY[key].toLowerCase() === currentUser.email.toLowerCase());
+                if (directoryName) { currentUserName = directoryName; } else { if (currentUser.email === 'hagay1989@gmail.com') { currentUserName = 'חגי'; } else { currentUserName = currentUser.email.split('@')[0]; } }
+            }
+            const newTask = { name: input.value.trim(), done: false, assignee: currentUserName, dueDate: dateInput.value || null };
+            currentEditingProject.tasks.push(newTask); input.value = ''; dateInput.value = '';
+            db.collection('projects').doc(currentEditingProject.id).update({ tasks: currentEditingProject.tasks });
+            renderTasksList(); 
         }
-        function toggleTask(i) {
-            const tasks = [...currentProject.tasks]; tasks[i].done = !tasks[i].done;
-            db.collection('projects').doc(currentProject.id).update({ tasks: tasks });
+        function toggleTask(idx) { currentEditingProject.tasks[idx].done = !currentEditingProject.tasks[idx].done; db.collection('projects').doc(currentEditingProject.id).update({ tasks: currentEditingProject.tasks }); }
+        function deleteTask(idx) { const newTasks = [...currentEditingProject.tasks]; newTasks.splice(idx, 1); db.collection('projects').doc(currentEditingProject.id).update({ tasks: newTasks }); }
+        function handleFileSelect(input) { if (input.files && input.files[0]) { selectedFile = input.files[0]; if (selectedFile.size > 500 * 1024) { alert("קובץ גדול מדי (מקסימום 500KB)"); selectedFile = null; return; } const d = safeGet('fileNameDisplay'); if(d) { d.textContent = selectedFile.name; d.classList.remove('hidden'); } } }
+        function addActivityNote() { const txt = safeVal('newNoteText'); if(!txt.trim() && !selectedFile) return; const save = (fileData) => { const activity = { user: currentUser.email.split('@')[0], text: txt, date: new Date().toISOString(), file: fileData }; const newActs = [...(currentEditingProject.activities || []), activity]; db.collection('projects').doc(currentEditingProject.id).update({ activities: newActs }).then(() => { const noteBox = safeGet('newNoteText'); if(noteBox) noteBox.value = ''; const fDisplay = safeGet('fileNameDisplay'); if(fDisplay) fDisplay.classList.add('hidden'); selectedFile = null; }); }; if (selectedFile) { const reader = new FileReader(); reader.onload = (e) => save({ name: selectedFile.name, type: selectedFile.type, data: e.target.result }); reader.readAsDataURL(selectedFile); } else { save(null); } }
+        function deleteActivity(idx) { if(!confirm('למחוק?')) return; const acts = [...currentEditingProject.activities]; acts.splice(idx, 1); db.collection('projects').doc(currentEditingProject.id).update({ activities: acts }); }
+        function renderActivityFeed() { const list = safeGet('activityFeed'); if(!list) return; const acts = currentEditingProject.activities || []; if(acts.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">אין פעילות. היה הראשון לעדכן!</div>'; return; } const sorted = acts.map((a, i) => ({...a, originalIndex: i})).sort((a,b) => new Date(b.date) - new Date(a.date)); list.innerHTML = sorted.map(a => { let fileHTML = ''; if(a.file) { if(a.file.type.startsWith('image/')) { fileHTML = `<br><img src="${a.file.data}" class="mt-3 rounded-xl border max-h-48 cursor-pointer hover:opacity-95 shadow-sm" onclick="window.open('${a.file.data}')">`; } else { fileHTML = `<br><a href="${a.file.data}" download="${a.file.name}" class="inline-flex items-center gap-3 mt-3 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl text-sm border border-blue-100 hover:bg-blue-100 transition"><i class="fas fa-file-download text-lg"></i> ${a.file.name}</a>`; } } return `<div class="bg-white p-5 rounded-2xl border border-gray-100 flex gap-4 shadow-sm relative group hover:shadow-md transition"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm text-sm">${a.user.charAt(0).toUpperCase()}</div><div class="flex-1"><div class="flex justify-between items-center mb-1"><span class="font-bold text-sm text-gray-900">${a.user}</span><span class="text-xs text-gray-400 font-mono" dir="ltr">${new Date(a.date).toLocaleString('he-IL')}</span></div><p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">${a.text}</p>${fileHTML}</div><button onclick="deleteActivity(${a.originalIndex})" class="absolute top-4 left-4 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition bg-white p-1.5 rounded-lg border border-gray-100 shadow-sm"><i class="fas fa-trash"></i></button></div>`; }).join(''); }
+        function saveFullProject() { const oldStatus = currentEditingProject.status; const newStatus = safeVal('editStatus'); currentEditingProject.name = safeVal('editName'); currentEditingProject.estimatedCost = safeVal('editCost'); currentEditingProject.status = newStatus; currentEditingProject.owner = safeVal('editOwner'); currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate'); currentEditingProject.objective = safeVal('editDesc'); db.collection('projects').doc(currentEditingProject.id).update(currentEditingProject).then(() => { if (oldStatus !== 'done' && newStatus === 'done') { const team = currentEditingProject.team || []; if (team.length > 0) { let emailPromises = []; const mailTitle = `ברכות! הפרויקט הסתיים - ${currentEditingProject.name}`; const mailBody = `הפרויקט סומן כ"הושלם" במערכת! תודה רבה על העבודה וההשקעה.`; team.forEach(memberEmail => { const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", { to_email: memberEmail, email_title: mailTitle, email_message: mailBody, project_name: currentEditingProject.name, owner_name: currentEditingProject.owner, department: currentEditingProject.department }); emailPromises.push(p); }); alert('הפרויקט עודכן ל"הושלם" ומיילי סיום נשלחו לצוות! 🏁'); } } closeFullModal(); }).catch(e => alert("שגיאה בשמירה: " + e.message)); }
+        function deleteCurrentProject() { if(confirm('האם אתה בטוח שברצונך למחוק את הפרויקט?')) db.collection('projects').doc(currentEditingProject.id).delete().then(() => closeFullModal()); }
+        function closeFullModal() { safeRemoveClass('fullProjectModal', 'flex'); safeAddClass('fullProjectModal', 'hidden'); currentEditingProject = null; }
+        function openNewProjectModal() { safeVal('npName', ''); const startInput = safeGet('npStart'); if(startInput) startInput.valueAsDate = new Date(); safeVal('npEnd', ''); safeVal('npCost', ''); document.querySelectorAll('#npTeam input').forEach(c => c.checked = false); safeRemoveClass('newProjectModal', 'hidden'); safeAddClass('newProjectModal', 'flex'); }
+        function createNewProject() { const name = safeVal('npName'); const owner = safeVal('npOwner'); if(!name) return alert('חובה להזין שם פרויקט'); if(!owner) return alert('חובה לבחור אחראי'); const team = []; document.querySelectorAll('#npTeam input:checked').forEach(cb => team.push(cb.value)); if (team.length === 0 && !confirm('לא נבחרו שותפים לפרויקט. לא יישלחו מיילים. האם להמשיך?')) return; const newProj = { userId: currentUser.uid, name: name, site: safeVal('npSite'), department: safeVal('npDept'), owner: owner, priority: safeVal('npPriority'), startDate: safeVal('npStart'), endDate: safeVal('npEnd'), estimatedCost: safeVal('npCost'), status: 'planned', team: team, tasks: [], activities: [], progress: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() }; db.collection('projects').add(newProj).then(() => { if (team && team.length > 0) { let emailPromises = []; const mailTitle = `עדכון: פרויקט חדש - ${name}`; const mailBody = `שמחים לעדכן שנפתח פרויקט חדש במערכת.`; team.forEach(memberEmail => { const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", { to_email: memberEmail, email_title: mailTitle, email_message: mailBody, project_name: name, owner_name: owner, department: safeVal('npDept') }); emailPromises.push(p); }); Promise.all(emailPromises).then(() => { alert('הפרויקט נוצר והמיילים נשלחו בהצלחה! 📧'); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); }).catch((err) => { console.error(err); alert('שגיאה בשליחת המיילים: ' + JSON.stringify(err)); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); }); } else { alert('הפרויקט נוצר (ללא שליחת מייל).'); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); } }).catch(e => alert("שגיאה: " + e.message)); }
+        function exportToExcel() { let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; csvContent += "שם הפרויקט,אתר,מחלקה,אחראי,סטטוס,תקציב,התקדמות\n"; projectsData.forEach(p => { const row = [p.name, p.site, p.department, p.owner, STATUSES[p.status].label, p.estimatedCost, p.progress + '%'].join(","); csvContent += row + "\n"; }); const encodedUri = encodeURI(csvContent); const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", "projects_report.csv"); document.body.appendChild(link); link.click(); }
+        function openAnalyticsModal() { let totalBudget = 0; let highRiskCount = 0; let deptBudget = {}; let projectCosts = []; let ownerCounts = {}; let statusCounts = {}; let activeProjects = 0; projectsData.forEach(p => { const cost = Number(p.estimatedCost) || 0; totalBudget += cost; if(p.status === 'blocked') highRiskCount++; if(p.status === 'in-progress') activeProjects++; if(!deptBudget[p.department]) deptBudget[p.department] = 0; deptBudget[p.department] += cost; const ownerName = p.owner || 'לא הוקצה'; ownerCounts[ownerName] = (ownerCounts[ownerName] || 0) + 1; const statusLabel = STATUSES[p.status] ? STATUSES[p.status].label : 'אחר'; statusCounts[statusLabel] = (statusCounts[statusLabel] || 0) + 1; projectCosts.push({ name: p.name, cost: cost }); }); safeText('totalBudgetDisplay', '₪' + totalBudget.toLocaleString()); safeText('totalProjectsDisplay', projectsData.length); safeText('highRiskDisplay', highRiskCount); safeText('activeProjectsDisplay', activeProjects); renderCharts(deptBudget, projectCosts, ownerCounts, statusCounts); safeRemoveClass('analyticsModal', 'hidden'); safeAddClass('analyticsModal', 'flex'); }
+        function renderCharts(deptBudget, projectCosts, ownerCounts, statusCounts) { 
+            let trendData = new Array(12).fill(0);
+            projectsData.forEach(p => { if(p.tasks) { p.tasks.forEach(t => { if(t.dueDate) { const d = new Date(t.dueDate); if(d.getFullYear() === new Date().getFullYear()) { trendData[d.getMonth()]++; } } }); } });
+            if(analyticsCharts.budget) analyticsCharts.budget.destroy(); if(analyticsCharts.top) analyticsCharts.top.destroy(); if(analyticsCharts.workload) analyticsCharts.workload.destroy(); if(analyticsCharts.status) analyticsCharts.status.destroy(); if(analyticsCharts.trend) analyticsCharts.trend.destroy();
+            const ctx1 = document.getElementById('budgetChart').getContext('2d'); analyticsCharts.budget = new Chart(ctx1, { type: 'doughnut', data: { labels: Object.keys(deptBudget), datasets: [{ data: Object.values(deptBudget), backgroundColor: ['#3b82f6', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] }, options: { responsive: true, maintainAspectRatio: false } }); 
+            const ctxWorkload = document.getElementById('workloadChart').getContext('2d'); analyticsCharts.workload = new Chart(ctxWorkload, { type: 'bar', data: { labels: Object.keys(ownerCounts), datasets: [{ label: 'מספר פרויקטים', data: Object.values(ownerCounts), backgroundColor: '#8b5cf6', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } }); 
+            const ctxStatus = document.getElementById('statusChart').getContext('2d'); analyticsCharts.status = new Chart(ctxStatus, { type: 'pie', data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#e5e7eb', '#3b82f6', '#ef4444', '#10b981'] }] }, options: { responsive: true, maintainAspectRatio: false } }); 
+            const top5 = projectCosts.sort((a,b) => b.cost - a.cost).slice(0, 5); const ctx2 = document.getElementById('topProjectsChart').getContext('2d'); analyticsCharts.top = new Chart(ctx2, { type: 'bar', data: { labels: top5.map(p => p.name.substring(0, 15) + '...'), datasets: [{ label: 'עלות (₪)', data: top5.map(p => p.cost), backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } }); 
+            const ctxTrend = document.getElementById('trendChart').getContext('2d'); analyticsCharts.trend = new Chart(ctxTrend, { type: 'line', data: { labels: ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'], datasets: [{ label: 'צפי סיום משימות', data: trendData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
         }
-        function deleteTask(i) {
-            const tasks = [...currentProject.tasks]; tasks.splice(i, 1);
-            db.collection('projects').doc(currentProject.id).update({ tasks: tasks });
-        }
-        
-        function addActivity() {
-            const t = document.getElementById('newActivityInput').value;
-            if(!t) return;
-            const newAct = [...(currentProject.activity || []), { text: t, user: currentUser.email, date: new Date().toISOString() }];
-            db.collection('projects').doc(currentProject.id).update({ activity: newAct });
-            document.getElementById('newActivityInput').value = '';
-        }
-
-        function openNewProjectModal() {
-            document.getElementById('newProjectModal').classList.remove('hidden');
-            document.getElementById('newProjectModal').classList.add('flex');
-        }
-        function closeNewProjectModal() {
-            document.getElementById('newProjectModal').classList.add('hidden');
-            document.getElementById('newProjectModal').classList.remove('flex');
-        }
-        
-        function sendEmailAlert(project) {
-            // Uncomment and set your keys to enable:
-            // emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', { name: project.name, manager: project.manager });
-            console.log('Email capability is ready (configure in script).');
-        }
-
-        function createNewProject() {
-            const name = document.getElementById('npName').value;
-            const dept = document.getElementById('npDept').value;
-            if(!name) return alert('חובה להזין שם');
-            
-            const newProj = {
-                name: name, department: dept, status: 'מתוכנן', progress: 0, risk: 'low',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            db.collection('projects').add(newProj).then(() => { 
-                sendEmailAlert(newProj);
-                closeNewProjectModal(); 
-            });
-        }
-        
-        function exportToExcel() {
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-            csvContent += "שם הפרויקט,מחלקה,אחראי,סטטוס,תקציב,התקדמות\n";
-            projectsData.forEach(p => {
-                const row = [p.name, p.department, p.manager, p.status, p.budget, p.progress + '%'].join(",");
-                csvContent += row + "\n";
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "projects_report.csv");
-            document.body.appendChild(link);
-            link.click();
-        }
+        function switchView(v) { currentView = v; renderProjects(); }
+        function updateViewButtons(active) { const l = safeGet('viewBtnList'), k = safeGet('viewBtnKanban'); const act = "px-5 py-2 text-sm rounded-lg transition font-bold flex items-center gap-2 shadow-sm bg-white text-blue-600"; const inact = "px-5 py-2 text-sm rounded-lg transition font-medium flex items-center gap-2 text-slate-500 hover:bg-white hover:text-slate-700 hover:shadow-sm"; l.className = active === 'list' ? act : inact; k.className = active === 'kanban' ? act : inact; }
     </script>
 </body>
 </html>
