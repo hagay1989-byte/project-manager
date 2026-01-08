@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Project Manager V63 - Login Fixed</title>
+    <title>Project Manager V68 - Elegant Team Edit</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -186,7 +186,7 @@
                     <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-64 md:h-80"><h4 class="font-bold text-gray-700 mb-2 text-xs md:text-sm">פרויקטים מובילים</h4><div class="flex-1 relative w-full h-full"><canvas id="topProjectsChart"></canvas></div></div>
                 </div>
                 <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col h-72">
-                    <h4 class="font-bold text-gray-700 mb-2 text-xs md:text-sm flex items-center gap-2"><i class="fas fa-chart-line text-blue-500"></i> תחזית עומס משימות שנתי</h4>
+                    <h4 class="font-bold text-gray-700 mb-2 text-xs md:text-sm flex items-center gap-2"><i class="fas fa-chart-line text-blue-500"></i> עומס פרויקטים פעילים</h4>
                     <div class="flex-1 relative w-full h-full"><canvas id="trendChart"></canvas></div>
                 </div>
             </div>
@@ -220,7 +220,24 @@
                             <div class="grid grid-cols-2 gap-2"><div><label class="block text-xs font-bold text-gray-500 mb-1">סטטוס</label><select id="editStatus" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div><div><label class="block text-xs font-bold text-gray-500 mb-1">אחראי</label><select id="editOwner" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm bg-white outline-none"></select></div></div>
                             <div><label class="block text-xs font-bold text-gray-500 mb-1">תקציב (₪)</label><input type="number" id="editCost" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none"></div>
                             <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-1">תיאור</label><textarea id="editDesc" onchange="syncData()" class="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none resize-none" rows="2"></textarea></div>
-                            <div class="md:col-span-2"><label class="block text-xs font-bold text-gray-500 mb-2">צוות</label><div id="viewTeamList" class="flex flex-wrap gap-2"></div></div>
+                            
+                            <div class="md:col-span-2 border-t pt-4 mt-2">
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="block text-xs font-bold text-gray-500">צוות ושותפים</label>
+                                    <button onclick="toggleTeamEdit()" class="text-blue-600 text-xs font-bold hover:bg-blue-50 px-3 py-1 rounded-lg transition border border-blue-100">
+                                        <i class="fas fa-pencil-alt ml-1"></i> ערוך שותפים
+                                    </button>
+                                </div>
+                                
+                                <div id="viewTeamBadges" class="flex flex-wrap gap-2"></div>
+
+                                <div id="editTeamContainer" class="hidden bg-gray-50 p-3 rounded-xl border border-gray-200 mt-2 animate-modal">
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3" id="editTeamCheckboxes"></div>
+                                    <label class="block text-[10px] font-bold text-gray-400 mb-1">שותפים חיצוניים (הפרד בפסיק):</label>
+                                    <input id="editTeamManual" class="w-full border border-gray-200 rounded-lg p-2 text-xs outline-none bg-white" placeholder="email1@test.com, email2@test.com" onchange="syncData()">
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -267,7 +284,18 @@
                     <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">סיום</label><input type="date" id="npEnd" class="w-full border border-gray-200 rounded-xl p-3 outline-none"></div>
                     <div><label class="block text-xs font-bold text-gray-500 mb-1.5 uppercase">עלות</label><input type="number" id="npCost" class="w-full border border-gray-200 rounded-xl p-3 outline-none" placeholder="0"></div>
                 </div>
-                <div><label class="block text-xs font-bold text-gray-500 mb-2 uppercase">שותפים</label><div id="npTeam" class="grid grid-cols-3 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100"></div></div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-2 uppercase">שותפים</label>
+                    <div id="npTeam" class="grid grid-cols-3 md:grid-cols-4 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100"></div>
+                    
+                    <div class="mt-4 pt-3 border-t border-gray-100">
+                        <label class="block text-xs font-bold text-gray-500 mb-2">הוספה ידנית (לא ברשימה):</label>
+                        <div id="manualPartnersList" class="space-y-2"></div>
+                        <button onclick="addManualPartnerRow()" class="mt-2 text-blue-600 text-xs font-bold hover:bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 transition inline-flex items-center gap-1">
+                            <i class="fas fa-plus"></i> הוסף שותף חיצוני
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="p-4 md:p-6 border-t bg-gray-50 flex justify-end gap-3"><button onclick="document.getElementById('newProjectModal').classList.add('hidden')" class="px-6 py-2.5 border rounded-xl hover:bg-gray-100 font-medium">ביטול</button><button onclick="createNewProject()" class="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow-md hover:bg-blue-700">צור</button></div>
         </div>
@@ -288,7 +316,23 @@
         (function() { emailjs.init("lVJCS9f5i8YqFTNyK"); })();
 
         const ADMIN_EMAILS = ['hagay1989@gmail.com','hagay@herzliya-marina.co.il','ronit@herzliya-marina.co.il']; 
-        const TEAM_DIRECTORY = { 'ולרי': 'valery@herzliya-marina.co.il', 'חגית': 'hagits@herzliya-marina.co.il', 'רונית': 'ronit@herzliya-marina.co.il', 'יפית': 'office@herzliya-marina.co.il', 'זאנה': 'zana@herzliya-marina.co.il', 'חגי': 'hagay@herzliya-marina.co.il', 'עירא': 'iralif@herzliya-marina.co.il', 'ירדן': 'yarden.ak@herzliya-marina.co.il', 'מיכאלה': 'michaela@herzliya-marina.co.il', 'מעיין': 'maayans@herzliya-marina.co.il', 'אלכס': 'alexf@herzliya-marina.co.il' };
+        
+        const TEAM_DIRECTORY = { 
+            'ולרי': 'valery@herzliya-marina.co.il', 
+            'חגית': 'hagits@herzliya-marina.co.il', 
+            'רונית': 'ronit@herzliya-marina.co.il', 
+            'יפית': 'office@herzliya-marina.co.il', 
+            'זאנה': 'zana@herzliya-marina.co.il', 
+            'חגי': 'hagay@herzliya-marina.co.il', 
+            'עירא': 'iralif@herzliya-marina.co.il', 
+            'ירדן': 'yarden.ak@herzliya-marina.co.il', 
+            'מיכאלה': 'michaela@herzliya-marina.co.il', 
+            'מעיין': 'maayans@herzliya-marina.co.il', 
+            'אלכס': 'alexf@herzliya-marina.co.il',
+            'עירייה': 'municipality@herzliya.muni.il', 
+            'קבלן חיצוני': 'contractor@external.com'   
+        };
+
         const SITES = ['מבנה מנהלה', 'מבנה מספנה', 'חוף הים', 'שובר גלים', 'אירועים', 'רציפים'];
         const DEPARTMENTS = ['אחזקה', 'נכסים', 'מעגנה', 'מספנה', 'הנהלה', 'הנהלת חשבונות', 'אירועים', 'שירות לקוחות'];
         
@@ -487,7 +531,84 @@
             safeText('modalProjectTitle', currentEditingProject.name);
             safeHTML('modalProjectSub', `<i class="fas fa-building text-gray-300"></i> ${currentEditingProject.site} <span class="mx-2 text-gray-200">|</span> <i class="fas fa-briefcase text-gray-300"></i> ${currentEditingProject.department}`);
             safeVal('editName', currentEditingProject.name); safeVal('editCost', currentEditingProject.estimatedCost); safeVal('editStatus', currentEditingProject.status); safeVal('editOwner', currentEditingProject.owner); safeVal('editStartDate', currentEditingProject.startDate || ''); safeVal('editEndDate', currentEditingProject.endDate || ''); safeVal('editDesc', currentEditingProject.objective || '');
+            
+            // --- POPULATE EDIT TEAM SECTION (V67/V68 Logic) ---
+            renderEditTeamSection();
+            
+            // Ensure View mode is active by default
+            document.getElementById('editTeamContainer').classList.add('hidden');
+            document.getElementById('viewTeamBadges').classList.remove('hidden');
+
             refreshModalUI(); switchTab('overview'); safeRemoveClass('fullProjectModal', 'hidden'); safeAddClass('fullProjectModal', 'flex');
+        }
+
+        // --- NEW: TOGGLE EDIT/VIEW ---
+        function toggleTeamEdit() {
+            const editDiv = document.getElementById('editTeamContainer');
+            const viewDiv = document.getElementById('viewTeamBadges');
+            
+            if(editDiv.classList.contains('hidden')) {
+                editDiv.classList.remove('hidden');
+                viewDiv.classList.add('hidden');
+            } else {
+                editDiv.classList.add('hidden');
+                viewDiv.classList.remove('hidden');
+            }
+        }
+
+        // --- RENDER EDIT TEAM (Checkboxes & View Badges) ---
+        function renderEditTeamSection() {
+            const container = document.getElementById('editTeamCheckboxes');
+            const manualInput = document.getElementById('editTeamManual');
+            const viewContainer = document.getElementById('viewTeamBadges');
+            
+            if(!container || !manualInput) return;
+            
+            container.innerHTML = '';
+            viewContainer.innerHTML = '';
+            
+            const currentTeam = Array.isArray(currentEditingProject.team) ? currentEditingProject.team : [];
+            const directoryEmails = Object.values(TEAM_DIRECTORY).map(e => e.toLowerCase().trim());
+            const manualEmails = [];
+
+            // 1. Checkboxes for Directory
+            Object.keys(TEAM_DIRECTORY).forEach(name => {
+                const email = TEAM_DIRECTORY[name];
+                const isChecked = currentTeam.includes(email);
+                
+                const label = document.createElement('label');
+                label.className = "flex items-center gap-2 cursor-pointer bg-white p-2 rounded-lg border hover:bg-blue-50 transition";
+                label.innerHTML = `
+                    <input type="checkbox" value="${email}" class="edit-team-cb rounded text-blue-600 w-4 h-4" ${isChecked ? 'checked' : ''} onchange="syncData()">
+                    <span class="text-[10px] font-bold text-gray-700">${name}</span>
+                `;
+                container.appendChild(label);
+            });
+
+            // 2. Filter Manual Emails & Generate Badges
+            if (currentTeam.length === 0) {
+                viewContainer.innerHTML = '<span class="text-gray-400 text-sm">אין שותפים נוספים</span>';
+            } else {
+                const hebrewMapping = { 'alex': 'אלכס', 'alexf': 'אלכס', 'hagay': 'חגי', 'valery': 'ולרי', 'ronit': 'רונית', 'hagits': 'חגית', 'hagit': 'חגית', 'maayans': 'מעיין', 'maayan': 'מעיין', 'yarden': 'ירדן', 'michaela': 'מיכאלה', 'iralif': 'עירא', 'ira': 'עירא', 'zana': 'זאנה', 'office': 'יפית', 'yafit': 'יפית' };
+                
+                currentTeam.forEach(email => {
+                    // Check if manual
+                    if (!directoryEmails.includes(email.toLowerCase().trim())) {
+                        manualEmails.push(email);
+                    }
+
+                    // Create Badge
+                    let displayName = email.split('@')[0];
+                    // Try to find Hebrew name from directory
+                    const dirName = Object.keys(TEAM_DIRECTORY).find(key => TEAM_DIRECTORY[key].toLowerCase().trim() === email.toLowerCase().trim());
+                    if (dirName) displayName = dirName;
+                    else if (hebrewMapping[displayName.toLowerCase()]) displayName = hebrewMapping[displayName.toLowerCase()];
+
+                    viewContainer.innerHTML += `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold shadow-sm">${displayName}</span>`;
+                });
+            }
+            
+            manualInput.value = manualEmails.join(', ');
         }
 
         function refreshModalUI() {
@@ -497,25 +618,40 @@
             safeText('statProgress', progress + '%'); const pBar = safeGet('statProgressBar'); if(pBar) pBar.style.width = progress + '%';
             safeText('viewStartDate', currentEditingProject.startDate || '-'); safeText('viewEndDate', currentEditingProject.endDate || '-');
             let risk = 'נמוכה'; if (currentEditingProject.status === 'blocked') risk = 'גבוהה'; safeText('statRisk', risk);
-            const teamContainer = safeGet('viewTeamList');
-            if (teamContainer) {
-                let team = currentEditingProject.team;
-                if (!Array.isArray(team)) team = []; 
-                if (team.length === 0) { teamContainer.innerHTML = '<span class="text-gray-400 text-sm">אין שותפים נוספים</span>'; } 
-                else {
-                    const hebrewMapping = { 'alex': 'אלכס', 'alexf': 'אלכס', 'hagay': 'חגי', 'valery': 'ולרי', 'ronit': 'רונית', 'hagits': 'חגית', 'hagit': 'חגית', 'maayans': 'מעיין', 'maayan': 'מעיין', 'yarden': 'ירדן', 'michaela': 'מיכאלה', 'iralif': 'עירא', 'ira': 'עירא', 'zana': 'זאנה', 'office': 'יפית', 'yafit': 'יפית' };
-                    const names = team.map(email => { const foundName = Object.keys(TEAM_DIRECTORY).find(key => TEAM_DIRECTORY[key].toLowerCase().trim() === email.toLowerCase().trim()); if (foundName) return foundName; const shortName = email.split('@')[0].toLowerCase(); if (hebrewMapping[shortName]) return hebrewMapping[shortName]; return shortName; });
-                    teamContainer.innerHTML = names.map(n => `<span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold shadow-sm">${n}</span>`).join('');
-                }
-            }
-            const activeTab = document.querySelector('.tab-content.active');
-            if (activeTab && activeTab.id === 'content-kanban') renderTasksList();
-            if (activeTab && activeTab.id === 'content-activity') renderActivityFeed();
-            if (activeTab && activeTab.id === 'content-timeline') renderProjectGanttChart(); 
         }
 
         function switchTab(name) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); safeAddClass(`tab-${name}`, 'active'); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); safeAddClass(`content-${name}`, 'active'); refreshModalUI(); }
-        function syncData() { currentEditingProject.name = safeVal('editName'); currentEditingProject.estimatedCost = safeVal('editCost'); safeText('modalProjectTitle', currentEditingProject.name); currentEditingProject.startDate = safeVal('editStartDate'); currentEditingProject.endDate = safeVal('editEndDate'); currentEditingProject.status = safeVal('editStatus'); currentEditingProject.owner = safeVal('editOwner'); currentEditingProject.objective = safeVal('editDesc'); refreshModalUI(); }
+        
+        function syncData() { 
+            currentEditingProject.name = safeVal('editName'); 
+            currentEditingProject.estimatedCost = safeVal('editCost'); 
+            safeText('modalProjectTitle', currentEditingProject.name); 
+            currentEditingProject.startDate = safeVal('editStartDate'); 
+            currentEditingProject.endDate = safeVal('editEndDate'); 
+            currentEditingProject.status = safeVal('editStatus'); 
+            currentEditingProject.owner = safeVal('editOwner'); 
+            currentEditingProject.objective = safeVal('editDesc'); 
+            
+            // --- SYNC TEAM DATA (V68 Hybrid) ---
+            const newTeam = [];
+            // Get Checked Boxes
+            document.querySelectorAll('.edit-team-cb:checked').forEach(cb => newTeam.push(cb.value));
+            // Get Manual Input
+            const manualText = safeVal('editTeamManual');
+            if (manualText) {
+                const parts = manualText.split(',');
+                parts.forEach(part => {
+                    const clean = part.trim();
+                    if(clean) newTeam.push(clean);
+                });
+            }
+            currentEditingProject.team = newTeam;
+            
+            // Re-render the badges live while editing
+            renderEditTeamSection();
+            
+            refreshModalUI(); 
+        }
 
         // --- GANTT CALENDAR LOGIC (MAIN) ---
         let ganttCurrentDate = new Date();
@@ -692,19 +828,41 @@
         function openNewProjectModal() { safeVal('npName', ''); const startInput = safeGet('npStart'); if(startInput) startInput.valueAsDate = new Date(); safeVal('npEnd', ''); safeVal('npCost', ''); document.querySelectorAll('#npTeam input').forEach(c => c.checked = false); safeRemoveClass('newProjectModal', 'hidden'); safeAddClass('newProjectModal', 'flex'); }
         function createNewProject() { const name = safeVal('npName'); const owner = safeVal('npOwner'); if(!name) return alert('חובה להזין שם פרויקט'); if(!owner) return alert('חובה לבחור אחראי'); const team = []; document.querySelectorAll('#npTeam input:checked').forEach(cb => team.push(cb.value)); if (team.length === 0 && !confirm('לא נבחרו שותפים לפרויקט. לא יישלחו מיילים. האם להמשיך?')) return; const newProj = { userId: currentUser.uid, name: name, site: safeVal('npSite'), department: safeVal('npDept'), owner: owner, priority: safeVal('npPriority'), startDate: safeVal('npStart'), endDate: safeVal('npEnd'), estimatedCost: safeVal('npCost'), status: 'planned', team: team, tasks: [], activities: [], progress: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() }; db.collection('projects').add(newProj).then(() => { if (team && team.length > 0) { let emailPromises = []; const mailTitle = `עדכון: פרויקט חדש - ${name}`; const mailBody = `שמחים לעדכן שנפתח פרויקט חדש במערכת.`; team.forEach(memberEmail => { const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", { to_email: memberEmail, email_title: mailTitle, email_message: mailBody, project_name: name, owner_name: owner, department: safeVal('npDept') }); emailPromises.push(p); }); Promise.all(emailPromises).then(() => { alert('הפרויקט נוצר והמיילים נשלחו בהצלחה! 📧'); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); }).catch((err) => { console.error(err); alert('שגיאה בשליחת המיילים: ' + JSON.stringify(err)); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); }); } else { alert('הפרויקט נוצר (ללא שליחת מייל).'); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); } }).catch(e => alert("שגיאה: " + e.message)); }
         function exportToExcel() { let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; csvContent += "שם הפרויקט,אתר,מחלקה,אחראי,סטטוס,תקציב,התקדמות\n"; projectsData.forEach(p => { const row = [p.name, p.site, p.department, p.owner, STATUSES[p.status].label, p.estimatedCost, p.progress + '%'].join(","); csvContent += row + "\n"; }); const encodedUri = encodeURI(csvContent); const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", "projects_report.csv"); document.body.appendChild(link); link.click(); }
+        
         function openAnalyticsModal() { let totalBudget = 0; let highRiskCount = 0; let deptBudget = {}; let projectCosts = []; let ownerCounts = {}; let statusCounts = {}; let activeProjects = 0; projectsData.forEach(p => { const cost = Number(p.estimatedCost) || 0; totalBudget += cost; if(p.status === 'blocked') highRiskCount++; if(p.status === 'in-progress') activeProjects++; if(!deptBudget[p.department]) deptBudget[p.department] = 0; deptBudget[p.department] += cost; const ownerName = p.owner || 'לא הוקצה'; ownerCounts[ownerName] = (ownerCounts[ownerName] || 0) + 1; const statusLabel = STATUSES[p.status] ? STATUSES[p.status].label : 'אחר'; statusCounts[statusLabel] = (statusCounts[statusLabel] || 0) + 1; projectCosts.push({ name: p.name, cost: cost }); }); safeText('totalBudgetDisplay', '₪' + totalBudget.toLocaleString()); safeText('totalProjectsDisplay', projectsData.length); safeText('highRiskDisplay', highRiskCount); safeText('activeProjectsDisplay', activeProjects); renderCharts(deptBudget, projectCosts, ownerCounts, statusCounts); safeRemoveClass('analyticsModal', 'hidden'); safeAddClass('analyticsModal', 'flex'); }
+        
         function renderCharts(deptBudget, projectCosts, ownerCounts, statusCounts) { 
             let trendData = new Array(12).fill(0);
-            projectsData.forEach(p => { if(Array.isArray(p.tasks)) { 
-                p.tasks.forEach(t => { if(t.dueDate) { const d = new Date(t.dueDate); if(!isNaN(d.getTime()) && d.getFullYear() === new Date().getFullYear()) { trendData[d.getMonth()]++; } } }); 
-            } });
+            const currentYear = new Date().getFullYear();
+
+            // --- CHANGED LOGIC: Count Active Projects per Month ---
+            projectsData.forEach(p => {
+                if(p.startDate && p.endDate) {
+                    const start = new Date(p.startDate);
+                    const end = new Date(p.endDate);
+                    
+                    // Iterate through months 0-11
+                    for(let m = 0; m < 12; m++) {
+                        // Define window for this month in current year
+                        const monthStart = new Date(currentYear, m, 1);
+                        const monthEnd = new Date(currentYear, m + 1, 0); // Last day of month
+                        
+                        // Check if project overlaps with this month
+                        if (start <= monthEnd && end >= monthStart) {
+                            trendData[m]++;
+                        }
+                    }
+                }
+            });
+
             if(analyticsCharts.budget) analyticsCharts.budget.destroy(); if(analyticsCharts.top) analyticsCharts.top.destroy(); if(analyticsCharts.workload) analyticsCharts.workload.destroy(); if(analyticsCharts.status) analyticsCharts.status.destroy(); if(analyticsCharts.trend) analyticsCharts.trend.destroy();
             const ctx1 = document.getElementById('budgetChart').getContext('2d'); analyticsCharts.budget = new Chart(ctx1, { type: 'doughnut', data: { labels: Object.keys(deptBudget), datasets: [{ data: Object.values(deptBudget), backgroundColor: ['#3b82f6', '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }] }, options: { responsive: true, maintainAspectRatio: false } }); 
             const ctxWorkload = document.getElementById('workloadChart').getContext('2d'); analyticsCharts.workload = new Chart(ctxWorkload, { type: 'bar', data: { labels: Object.keys(ownerCounts), datasets: [{ label: 'מספר פרויקטים', data: Object.values(ownerCounts), backgroundColor: '#8b5cf6', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } }); 
             const ctxStatus = document.getElementById('statusChart').getContext('2d'); analyticsCharts.status = new Chart(ctxStatus, { type: 'pie', data: { labels: Object.keys(statusCounts), datasets: [{ data: Object.values(statusCounts), backgroundColor: ['#e5e7eb', '#3b82f6', '#ef4444', '#10b981'] }] }, options: { responsive: true, maintainAspectRatio: false } }); 
             const top5 = projectCosts.sort((a,b) => b.cost - a.cost).slice(0, 5); const ctx2 = document.getElementById('topProjectsChart').getContext('2d'); analyticsCharts.top = new Chart(ctx2, { type: 'bar', data: { labels: top5.map(p => p.name.substring(0, 15) + '...'), datasets: [{ label: 'עלות (₪)', data: top5.map(p => p.cost), backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } }); 
-            const ctxTrend = document.getElementById('trendChart').getContext('2d'); analyticsCharts.trend = new Chart(ctxTrend, { type: 'line', data: { labels: ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'], datasets: [{ label: 'צפי סיום משימות', data: trendData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+            const ctxTrend = document.getElementById('trendChart').getContext('2d'); analyticsCharts.trend = new Chart(ctxTrend, { type: 'line', data: { labels: ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר'], datasets: [{ label: 'פרויקטים פעילים', data: trendData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
         }
+
         function switchView(v) { currentView = v; renderProjects(); }
         function updateViewButtons(active) { const l = safeGet('viewBtnList'), k = safeGet('viewBtnKanban'); const act = "px-5 py-2 text-sm rounded-lg transition font-bold flex items-center gap-2 shadow-sm bg-white text-blue-600"; const inact = "px-5 py-2 text-sm rounded-lg transition font-medium flex items-center gap-2 text-slate-500 hover:bg-white hover:text-slate-700 hover:shadow-sm"; l.className = active === 'list' ? act : inact; k.className = active === 'kanban' ? act : inact; }
     </script>
