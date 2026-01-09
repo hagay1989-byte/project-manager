@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Project Manager V83 - Text Wrap</title>
+    <title>Project Manager V84 - External Partner Fix</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -59,7 +59,7 @@
         .timeline-row { 
             display: flex; 
             border-bottom: 1px solid #f3f4f6; 
-            min-height: 44px; /* Changed from height to min-height */
+            min-height: 44px; 
             align-items: center; 
             position: relative; 
             transition: background 0.1s; 
@@ -68,7 +68,7 @@
         
         /* V83: Changed height to min-height for task rows too */
         .timeline-row.task-row { 
-            min-height: 32px; /* Changed from height to min-height */
+            min-height: 32px; 
             background-color: #fcfcfc; 
             border-bottom: 1px dashed #f0f0f0; 
         }
@@ -83,9 +83,9 @@
             flex-shrink: 0; 
             display: flex; 
             align-items: center; 
-            padding: 8px 12px; /* Added vertical padding for wrapped text */
-            height: auto; /* Allow growth */
-            align-self: stretch; /* Ensure it stretches with flex parent */
+            padding: 8px 12px; 
+            height: auto; 
+            align-self: stretch; 
             z-index: 50; 
             box-shadow: -4px 0 10px -2px rgba(0,0,0,0.1); 
         }
@@ -98,8 +98,8 @@
         /* --- CENTERED TEXT --- */
         .timeline-bar { 
             position: absolute; 
-            top: 50%; /* Center vertically */
-            transform: translateY(-50%); /* Center vertically */
+            top: 50%; 
+            transform: translateY(-50%); 
             height: 28px; 
             border-radius: 6px; 
             font-size: 0.75rem; 
@@ -927,8 +927,70 @@
 
         function deleteCurrentProject() { if(confirm('האם אתה בטוח שברצונך למחוק את הפרויקט?')) db.collection('projects').doc(currentEditingProject.id).delete().then(() => closeFullModal()); }
         function closeFullModal() { safeRemoveClass('fullProjectModal', 'flex'); safeAddClass('fullProjectModal', 'hidden'); currentEditingProject = null; }
-        function openNewProjectModal() { safeVal('npName', ''); const startInput = safeGet('npStart'); if(startInput) startInput.valueAsDate = new Date(); safeVal('npEnd', ''); safeVal('npCost', ''); document.querySelectorAll('#npTeam input').forEach(c => c.checked = false); safeRemoveClass('newProjectModal', 'hidden'); safeAddClass('newProjectModal', 'flex'); }
-        function createNewProject() { const name = safeVal('npName'); const owner = safeVal('npOwner'); if(!name) return alert('חובה להזין שם פרויקט'); if(!owner) return alert('חובה לבחור אחראי'); const team = []; document.querySelectorAll('#npTeam input:checked').forEach(cb => team.push(cb.value)); if (team.length === 0 && !confirm('לא נבחרו שותפים לפרויקט. לא יישלחו מיילים. האם להמשיך?')) return; const newProj = { userId: currentUser.uid, name: name, site: safeVal('npSite'), department: safeVal('npDept'), owner: owner, priority: safeVal('npPriority'), startDate: safeVal('npStart'), endDate: safeVal('npEnd'), estimatedCost: safeVal('npCost'), status: 'planned', team: team, tasks: [], activities: [], progress: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() }; db.collection('projects').add(newProj).then(() => { if (team && team.length > 0) { let emailPromises = []; const mailTitle = `עדכון: פרויקט חדש - ${name}`; const mailBody = `שמחים לעדכן שנפתח פרויקט חדש במערכת.`; team.forEach(memberEmail => { const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", { to_email: memberEmail, email_title: mailTitle, email_message: mailBody, project_name: name, owner_name: owner, department: safeVal('npDept') }); emailPromises.push(p); }); Promise.all(emailPromises).then(() => { alert('הפרויקט נוצר והמיילים נשלחו בהצלחה! 📧'); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); }).catch((err) => { console.error(err); alert('שגיאה בשליחת המיילים: ' + JSON.stringify(err)); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); }); } else { alert('הפרויקט נוצר (ללא שליחת מייל).'); safeAddClass('newProjectModal', 'hidden'); safeRemoveClass('newProjectModal', 'flex'); } }).catch(e => alert("שגיאה: " + e.message)); }
+        function openNewProjectModal() { safeVal('npName', ''); const startInput = safeGet('npStart'); if(startInput) startInput.valueAsDate = new Date(); safeVal('npEnd', ''); safeVal('npCost', ''); document.querySelectorAll('#npTeam input').forEach(c => c.checked = false); 
+        // Clear manual inputs
+        const manualContainer = document.getElementById('manualPartnersList');
+        if (manualContainer) manualContainer.innerHTML = '';
+        safeRemoveClass('newProjectModal', 'hidden'); safeAddClass('newProjectModal', 'flex'); }
+        
+        // --- ADDED MISSING FUNCTION ---
+        function addManualPartnerRow() {
+            const container = document.getElementById('manualPartnersList');
+            const div = document.createElement('div');
+            div.className = 'flex gap-2 items-center';
+            div.innerHTML = `
+                <input type="email" placeholder="email@external.com" class="manual-partner-input flex-1 border border-gray-200 rounded-lg p-2 text-xs outline-none">
+                <button onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        function createNewProject() { 
+            const name = safeVal('npName'); 
+            const owner = safeVal('npOwner'); 
+            if(!name) return alert('חובה להזין שם פרויקט'); 
+            if(!owner) return alert('חובה לבחור אחראי'); 
+            
+            const team = []; 
+            // Add checkboxes
+            document.querySelectorAll('#npTeam input:checked').forEach(cb => team.push(cb.value)); 
+            
+            // --- FIX: Add manual inputs ---
+            document.querySelectorAll('.manual-partner-input').forEach(inp => {
+                if(inp.value && inp.value.trim()) team.push(inp.value.trim());
+            });
+
+            if (team.length === 0 && !confirm('לא נבחרו שותפים לפרויקט. לא יישלחו מיילים. האם להמשיך?')) return; 
+            
+            const newProj = { userId: currentUser.uid, name: name, site: safeVal('npSite'), department: safeVal('npDept'), owner: owner, priority: safeVal('npPriority'), startDate: safeVal('npStart'), endDate: safeVal('npEnd'), estimatedCost: safeVal('npCost'), status: 'planned', team: team, tasks: [], activities: [], progress: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() }; 
+            
+            db.collection('projects').add(newProj).then(() => { 
+                if (team && team.length > 0) { 
+                    let emailPromises = []; 
+                    const mailTitle = `עדכון: פרויקט חדש - ${name}`; 
+                    const mailBody = `שמחים לעדכן שנפתח פרויקט חדש במערכת.`; 
+                    team.forEach(memberEmail => { 
+                        const p = emailjs.send("service_bk3qnf8", "template_8xea4xt", { to_email: memberEmail, email_title: mailTitle, email_message: mailBody, project_name: name, owner_name: owner, department: safeVal('npDept') }); 
+                        emailPromises.push(p); 
+                    }); 
+                    Promise.all(emailPromises).then(() => { 
+                        alert('הפרויקט נוצר והמיילים נשלחו בהצלחה! 📧'); 
+                        safeAddClass('newProjectModal', 'hidden'); 
+                        safeRemoveClass('newProjectModal', 'flex'); 
+                    }).catch((err) => { 
+                        console.error(err); 
+                        alert('שגיאה בשליחת המיילים: ' + JSON.stringify(err)); 
+                        safeAddClass('newProjectModal', 'hidden'); 
+                        safeRemoveClass('newProjectModal', 'flex'); 
+                    }); 
+                } else { 
+                    alert('הפרויקט נוצר (ללא שליחת מייל).'); 
+                    safeAddClass('newProjectModal', 'hidden'); 
+                    safeRemoveClass('newProjectModal', 'flex'); 
+                } 
+            }).catch(e => alert("שגיאה: " + e.message)); 
+        }
+        
         function exportToExcel() { let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; csvContent += "שם הפרויקט,אתר,מחלקה,אחראי,סטטוס,תקציב,התקדמות\n"; projectsData.forEach(p => { const row = [p.name, p.site, p.department, p.owner, STATUSES[p.status].label, p.estimatedCost, p.progress + '%'].join(","); csvContent += row + "\n"; }); const encodedUri = encodeURI(csvContent); const link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", "projects_report.csv"); document.body.appendChild(link); link.click(); }
         function openAnalyticsModal() { let totalBudget = 0; let highRiskCount = 0; let deptBudget = {}; let projectCosts = []; let ownerCounts = {}; let statusCounts = {}; let activeProjects = 0; projectsData.forEach(p => { const cost = Number(p.estimatedCost) || 0; totalBudget += cost; if(p.status === 'blocked') highRiskCount++; if(p.status === 'in-progress') activeProjects++; if(!deptBudget[p.department]) deptBudget[p.department] = 0; deptBudget[p.department] += cost; const ownerName = p.owner || 'לא הוקצה'; ownerCounts[ownerName] = (ownerCounts[ownerName] || 0) + 1; const statusLabel = STATUSES[p.status] ? STATUSES[p.status].label : 'אחר'; statusCounts[statusLabel] = (statusCounts[statusLabel] || 0) + 1; projectCosts.push({ name: p.name, cost: cost }); }); safeText('totalBudgetDisplay', '₪' + totalBudget.toLocaleString()); safeText('totalProjectsDisplay', projectsData.length); safeText('highRiskDisplay', highRiskCount); safeText('activeProjectsDisplay', activeProjects); renderCharts(deptBudget, projectCosts, ownerCounts, statusCounts); safeRemoveClass('analyticsModal', 'hidden'); safeAddClass('analyticsModal', 'flex'); }
         function renderCharts(deptBudget, projectCosts, ownerCounts, statusCounts) { 
