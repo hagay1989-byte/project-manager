@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HomeOS V117 - Project Master</title>
+    <title>HomeOS V118 - Timeline Master</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -134,25 +134,20 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="text-xs text-slate-400 block mb-1">קטגוריה</label>
-                        <select id="planCategory" class="w-full px-3 rounded-xl text-sm">
-                            <option>🏠 שיפוץ</option>
-                            <option>✈️ חופשה</option>
-                            <option>🎉 אירוע</option>
-                            <option>📦 רכישה</option>
-                            <option>🚘 רכב</option>
-                            <option>💡 אחר</option>
-                        </select>
+                        <select id="planCategory" class="w-full px-3 rounded-xl text-sm"><option>🏠 שיפוץ</option><option>✈️ חופשה</option><option>🎉 אירוע</option><option>📦 רכישה</option><option>🚘 רכב</option><option>💡 אחר</option></select>
                     </div>
                     <div>
                         <label class="text-xs text-slate-400 block mb-1">אחראי</label>
-                        <select id="planOwner" class="w-full px-3 rounded-xl text-sm">
-                            <option value="משותף">🤝 משותף</option>
-                            <option value="חגי">👨 חגי</option>
-                            <option value="אמבר">👩 אמבר</option>
-                        </select>
+                        <select id="planOwner" class="w-full px-3 rounded-xl text-sm"><option value="משותף">🤝 משותף</option><option value="חגי">👨 חגי</option><option value="אמבר">👩 אמבר</option></select>
                     </div>
                 </div>
-                <div><label class="text-xs text-slate-400 block mb-1">שם הפרויקט</label><input type="text" id="planName" class="w-full px-4 rounded-xl font-bold" placeholder="למשל: שיפוץ מטבח"></div>
+                <div><label class="text-xs text-slate-400 block mb-1">שם הפרויקט</label><input type="text" id="planName" class="w-full px-4 rounded-xl font-bold" placeholder="למשל: חופשה ביוון"></div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-xs text-slate-400 block mb-1">התחלה</label><input type="date" id="planStart" class="w-full px-3 rounded-xl text-sm"></div>
+                    <div><label class="text-xs text-slate-400 block mb-1">סיום</label><input type="date" id="planEnd" class="w-full px-3 rounded-xl text-sm"></div>
+                </div>
+
                 <div><label class="text-xs text-slate-400 block mb-1">תקציב (₪)</label><input type="number" id="planLimit" class="w-full px-4 rounded-xl font-mono text-lg font-bold text-green-400 bg-green-900/20" placeholder="0"></div>
             </div>
             <div class="p-6 pt-0"><button onclick="savePlanHeader()" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold shadow-lg">צור פרויקט</button></div>
@@ -165,18 +160,16 @@
                 <div>
                     <div class="flex items-center gap-2"><span id="detailPlanCat" class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-purple-200"></span><span id="detailPlanOwn" class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-purple-200"></span></div>
                     <h3 class="text-2xl font-black text-white mt-1" id="detailPlanName"></h3>
-                    <p class="text-purple-200 text-xs mt-0.5" id="detailPlanLimit"></p>
+                    <div id="detailPlanDates" class="text-xs text-purple-300 mt-1 flex items-center gap-2"></div>
                 </div>
                 <button onclick="closeModal('plannerDetailModal')" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"><i class="fas fa-times"></i></button>
             </div>
             <div class="p-6 overflow-y-auto flex-1 bg-black/20 custom-scrollbar">
                 <input type="hidden" id="detailPlanIdHidden">
-                
                 <div class="glass p-4 rounded-2xl border border-white/5 shadow-lg mb-6">
-                    <div class="flex justify-between mb-2"><div class="text-center"><p class="text-[10px] text-slate-400">נוצל</p><p class="text-xl font-bold text-white" id="detailUsed">₪0</p></div><div class="text-center"><p class="text-[10px] text-slate-400">נותר</p><p class="text-xl font-bold" id="detailLeft">₪0</p></div></div>
+                    <div class="flex justify-between mb-2"><div class="text-center"><p class="text-[10px] text-slate-400">נוצל</p><p class="text-xl font-bold text-white" id="detailUsed">₪0</p></div><div class="text-center"><p class="text-[10px] text-slate-400">יעד</p><p class="text-xl font-bold text-purple-400" id="detailPlanLimitDisplay"></p></div><div class="text-center"><p class="text-[10px] text-slate-400">נותר</p><p class="text-xl font-bold" id="detailLeft">₪0</p></div></div>
                     <div class="w-full bg-white/10 h-5 rounded-full overflow-hidden relative"><div id="detailProgress" class="h-full bg-purple-500 transition-all duration-500 flex items-center justify-center" style="width: 0%"></div><span id="detailPercentText" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md">0%</span></div>
                 </div>
-
                 <div class="glass-input p-3 rounded-2xl mb-6 flex gap-2 items-center">
                     <div class="flex-1 space-y-2">
                         <div class="flex gap-2">
@@ -187,7 +180,6 @@
                     </div>
                     <button onclick="saveQuickItem()" class="w-12 h-12 rounded-xl bg-purple-600 text-white shadow-lg flex items-center justify-center active:scale-90 transition"><i class="fas fa-plus"></i></button>
                 </div>
-
                 <h4 class="font-bold text-slate-400 mb-3 text-xs uppercase tracking-wider">פירוט הוצאות</h4>
                 <div id="detailItemsContainer" class="space-y-3"></div>
             </div>
@@ -265,10 +257,14 @@
         function updateDetailModal(id) {
             const p = plans.find(x => x.id === id); if(!p) return;
             document.getElementById('detailPlanName').textContent = p.name;
-            document.getElementById('detailPlanLimit').textContent = 'תקציב: ₪' + Number(p.limit).toLocaleString();
+            document.getElementById('detailPlanLimitDisplay').textContent = '₪' + Number(p.limit).toLocaleString();
             document.getElementById('detailPlanCat').textContent = p.category || 'כללי';
             document.getElementById('detailPlanOwn').textContent = p.owner || 'משותף';
             
+            // SHOW DATES IN DETAIL HEADER
+            const dateText = p.startDate ? `<i class="far fa-calendar-alt"></i> ${new Date(p.startDate).toLocaleDateString('he-IL')} - ${p.endDate ? new Date(p.endDate).toLocaleDateString('he-IL') : '...'}` : '';
+            document.getElementById('detailPlanDates').innerHTML = dateText;
+
             const planItems = items.filter(i => i.linkedPlanId === id);
             const used = planItems.reduce((s,i) => s + (Number(i.estimatedCost)||0), 0);
             const rem = (Number(p.limit)||0) - used;
@@ -284,7 +280,6 @@
                     <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg"><i class="fas fa-rocket"></i></div><div><h4 class="font-bold text-white text-sm">${i.name}</h4><p class="text-[10px] text-slate-400">${i.startDate} • ${i.status==='done'?'✅':'⏳'}</p></div></div><div class="text-left"><p class="font-black text-lg text-white">₪${Number(i.estimatedCost).toLocaleString()}</p></div></div>`).join('');
         }
 
-        // NEW: QUICK ADD LOGIC
         function saveQuickItem() {
             const planId = document.getElementById('detailPlanIdHidden').value;
             const p = plans.find(x => x.id === planId);
@@ -292,12 +287,8 @@
             const cost = document.getElementById('quickCost').value;
             const date = document.getElementById('quickDate').value;
             if(!name || !cost) return showToast('חסר שם או מחיר');
-            
             const data={type:'expense', name:name, status:'done', department:p.category||'כללי', owner:p.owner||'משותף', startDate:date, estimatedCost:Number(cost), linkedPlanId:planId, linkedPlanName:p.name, createdAt:firebase.firestore.FieldValue.serverTimestamp(), userId:auth.currentUser.uid};
-            db.collection('family_transactions').add(data).then(()=>{ 
-                document.getElementById('quickName').value=''; document.getElementById('quickCost').value=''; showToast('נוסף בהצלחה!');
-                addNotification(`${currentUser} הוסיף לפרויקט ${p.name}: ${name}`); 
-            });
+            db.collection('family_transactions').add(data).then(()=>{ document.getElementById('quickName').value=''; document.getElementById('quickCost').value=''; showToast('נוסף בהצלחה!'); addNotification(`${currentUser} הוסיף לפרויקט ${p.name}: ${name}`); });
         }
 
         function openModal(mode, extraTitle = '') { 
@@ -305,16 +296,10 @@
             if (mode === 'new') { document.getElementById('editId').value=''; document.getElementById('pName').value=''; document.getElementById('pCost').value=''; document.getElementById('btnDelete').classList.add('hidden'); document.getElementById('pStart').valueAsDate=new Date(); setType('expense'); document.getElementById('modalTitle').textContent="הוספה"; document.getElementById('advancedFields').classList.remove('hidden'); }
             else if (mode === 'edit') { document.getElementById('modalTitle').textContent="עריכה"; document.getElementById('advancedFields').classList.remove('hidden'); }
         }
-        function editItem(id) { 
-            const i=items.find(x=>x.id===id); if(!i) return; 
-            document.getElementById('transactionModal').classList.remove('hidden'); document.getElementById('transactionModal').classList.add('flex');
-            setType(i.type||'expense'); document.getElementById('editId').value=id; document.getElementById('pName').value=i.name; document.getElementById('pStatus').value=i.status; document.getElementById('pDept').value=i.department; document.getElementById('pOwner').value=i.owner; document.getElementById('pStart').value=i.startDate; document.getElementById('pCost').value=i.estimatedCost; document.getElementById('linkedPlanId').value=i.linkedPlanId||''; document.getElementById('btnDelete').classList.remove('hidden'); document.getElementById('modalTitle').textContent="עריכה";
-        }
-        
+        function editItem(id) { const i=items.find(x=>x.id===id); if(!i) return; document.getElementById('transactionModal').classList.remove('hidden'); document.getElementById('transactionModal').classList.add('flex'); setType(i.type||'expense'); document.getElementById('editId').value=id; document.getElementById('pName').value=i.name; document.getElementById('pStatus').value=i.status; document.getElementById('pDept').value=i.department; document.getElementById('pOwner').value=i.owner; document.getElementById('pStart').value=i.startDate; document.getElementById('pCost').value=i.estimatedCost; document.getElementById('linkedPlanId').value=i.linkedPlanId||''; document.getElementById('btnDelete').classList.remove('hidden'); document.getElementById('modalTitle').textContent="עריכה"; }
         const CAT_EXPENSE = ['🛒 סופר','🏠 משכנתא','🚗 רכב','🎓 חינוך','✈️ בילוי','💡 חשבונות','💊 בריאות','📦 שונות'];
         const CAT_INCOME = ['💰 משכורת','🎁 מענק','📈 השקעות'];
         function setType(t) { document.getElementById('pType').value=t; const e=document.getElementById('btnTypeExpense'), i=document.getElementById('btnTypeIncome'), s=document.getElementById('pDept'), c=document.getElementById('pCost'); if(t==='expense'){ e.className="flex-1 py-3 rounded-lg font-bold bg-red-500 text-white shadow-lg"; i.className="flex-1 py-3 rounded-lg font-bold text-slate-400 hover:text-white"; s.innerHTML=CAT_EXPENSE.map(x=>`<option>${x}</option>`).join(''); c.classList.remove('text-green-400'); c.classList.add('text-red-400'); } else { i.className="flex-1 py-3 rounded-lg font-bold bg-green-500 text-white shadow-lg"; e.className="flex-1 py-3 rounded-lg font-bold text-slate-400 hover:text-white"; s.innerHTML=CAT_INCOME.map(x=>`<option>${x}</option>`).join(''); c.classList.remove('text-red-400'); c.classList.add('text-green-400'); } }
-        
         function saveItem() {
             const id=document.getElementById('editId').value, name=document.getElementById('pName').value, cost=document.getElementById('pCost').value;
             const data={type:document.getElementById('pType').value,name:name,status:document.getElementById('pStatus').value,department:document.getElementById('pDept').value,owner:document.getElementById('pOwner').value,startDate:document.getElementById('pStart').value,estimatedCost:Number(cost),linkedPlanId:document.getElementById('linkedPlanId').value||null,linkedPlanName:document.getElementById('linkedPlanName').value||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
@@ -323,7 +308,6 @@
         }
         function deleteItem(){ if(confirm('למחוק?')) db.collection('family_transactions').doc(document.getElementById('editId').value).delete().then(()=>closeModal('transactionModal')); }
         function sendEmailNotification(name, cost) { const targetEmail=currentEmail.includes('hagay')?'Ambartimsit@gmail.com':'Hagay1989@gmail.com'; const targetName=currentEmail.includes('hagay')?'אמבר':'חגי'; emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_name: targetName, to_email: targetEmail, from_name: currentUser, message: `נוספה: ${name} (₪${cost})` }); }
-        
         function showToast(msg) { const c=document.getElementById('toastContainer'), t=document.createElement('div'); t.className="glass p-3 rounded-xl flex items-center gap-3 text-white pointer-events-auto animate-float border border-white/10 shadow-lg backdrop-blur-md min-w-[250px]"; t.innerHTML=`<i class="fas fa-check-circle text-green-400 text-lg"></i><div><p class="font-bold text-sm text-slate-200">${msg}</p></div>`; c.appendChild(t); setTimeout(()=>t.remove(),3000); }
         function addNotification(msg) { notifications.unshift({msg, time: new Date()}); document.getElementById('notifBadge').classList.remove('hidden'); renderNotifications(); }
         function renderNotifications() { document.getElementById('notifList').innerHTML = notifications.length===0 ? '' : notifications.map(n => `<div class="p-3 border-b border-white/5 hover:bg-white/5 transition"><p class="text-xs font-bold text-white">${n.msg}</p><p class="text-[10px] text-slate-400">${n.time.toLocaleTimeString()}</p></div>`).join(''); document.getElementById('notifList').classList.remove('hidden'); }
@@ -337,8 +321,9 @@
         function savePlanHeader(){ 
             const n=document.getElementById('planName').value, l=document.getElementById('planLimit').value; 
             const cat=document.getElementById('planCategory').value, own=document.getElementById('planOwner').value;
+            const start=document.getElementById('planStart').value, end=document.getElementById('planEnd').value;
             if(!n) return alert('חסר שם'); 
-            db.collection('family_plans').add({name:n, limit:Number(l), category:cat, owner:own, userId:auth.currentUser.uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>closeModal('plannerHeaderModal')); 
+            db.collection('family_plans').add({name:n, limit:Number(l), category:cat, owner:own, startDate:start, endDate:end, userId:auth.currentUser.uid, createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>closeModal('plannerHeaderModal')); 
         }
         function deletePlan(id){ if(confirm('למחוק פרויקט?')) db.collection('family_plans').doc(id).delete(); }
         function openContactModal(){ document.getElementById('contactModal').classList.remove('hidden'); document.getElementById('contactModal').classList.add('flex'); }
@@ -347,7 +332,9 @@
         function renderContacts(){ document.getElementById('contactsContainer').innerHTML=contacts.map(c=>`<div class="glass p-5 rounded-2xl hover:bg-white/5 border border-white/5 flex items-center justify-between"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xl">${c.name.charAt(0)}</div><div><h4 class="font-bold text-white text-lg">${c.name}</h4><p class="text-sm text-slate-400">${c.role}</p></div></div><div class="flex gap-2"><a href="tel:${c.phone}" class="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center hover:bg-green-500/30"><i class="fas fa-phone"></i></a><button onclick="deleteContact('${c.id}')" class="w-10 h-10 rounded-full bg-white/5 text-slate-400 flex items-center justify-center hover:text-red-400"><i class="fas fa-trash"></i></button></div></div>`).join(''); }
         function renderTable(){ const s=document.getElementById('searchBox').value.toLowerCase(); document.getElementById('transactionsListMobile').innerHTML=items.filter(i=>(i.name||'').toLowerCase().includes(s)).sort((a,b)=>new Date(b.startDate)-new Date(a.startDate)).map(i=>`<div onclick="editItem('${i.id}')" class="glass p-4 rounded-2xl border border-white/5 flex justify-between items-center"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full flex items-center justify-center text-xl ${i.type==='income'?'bg-green-500/20 text-green-400':'bg-red-500/20 text-red-400'}"><i class="fas ${i.type==='income'?'fa-arrow-up':'fa-arrow-down'}"></i></div><div><h4 class="font-bold text-white text-sm">${i.name}</h4><p class="text-xs text-slate-400">${i.startDate}</p></div></div><span class="font-bold font-mono text-lg ${i.type==='income'?'text-green-400':'text-red-400'}">₪${Number(i.estimatedCost).toLocaleString()}</span></div>`).join(''); }
         function updateDashboard() { let inc=0, exp=0, monthStats=Array(12).fill(0).map(()=>({inc:0,exp:0})), catStats={}; items.forEach(i => { const amt = Number(i.estimatedCost)||0; const m = new Date(i.startDate||Date.now()).getMonth(); if(i.type==='income'){ inc+=amt; monthStats[m].inc+=amt; } else { exp+=amt; monthStats[m].exp+=amt; const c=i.linkedPlanName?('פרויקט: '+i.linkedPlanName):(i.department||'אחר'); catStats[c]=(catStats[c]||0)+amt; } }); document.getElementById('dashBalance').textContent='₪'+(inc-exp).toLocaleString(); document.getElementById('dashIncome').textContent=inc.toLocaleString(); document.getElementById('dashExpense').textContent=exp.toLocaleString(); if(chartMonthly) chartMonthly.destroy(); chartMonthly=new Chart(document.getElementById('monthlyChart'),{type:'bar',data:{labels:['ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצמ'],datasets:[{label:'הכנסות',data:monthStats.map(s=>s.inc),backgroundColor:'#10b981',borderRadius:4},{label:'הוצאות',data:monthStats.map(s=>s.exp),backgroundColor:'#ef4444',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'white'}}},scales:{x:{grid:{display:false},ticks:{color:'#94a3b8'}},y:{grid:{color:'#334155'},ticks:{color:'#94a3b8'}}}}}); }
-        function renderPlanner(){ const c=document.getElementById('plansContainer'); c.innerHTML=plans.length===0?'<div class="col-span-full text-center py-20 text-slate-500">אין פרויקטים</div>':plans.map(p=>{ const limit=Number(p.limit)||0, used=items.filter(i=>i.linkedPlanId===p.id).reduce((s,i)=>s+(Number(i.estimatedCost)||0),0), pct=limit>0?Math.min((used/limit)*100,100):0, rem=limit-used; return `<div onclick="openDetailModal('${p.id}')" class="glass p-5 rounded-2xl hover:bg-white/5 cursor-pointer relative group border border-white/5"><div class="flex justify-between mb-3"><div><h3 class="font-bold text-lg text-white">${p.name}</h3><div class="text-[10px] text-slate-400 mt-1">${p.category||''} • ${p.owner||''}</div></div><div class="text-right"><p class="text-[10px] text-slate-400">יעד</p><p class="font-bold text-purple-400">₪${limit.toLocaleString()}</p></div></div><div class="w-full bg-black/30 h-3 rounded-full overflow-hidden mb-3"><div class="h-full ${rem<0?'bg-red-500':'bg-gradient-to-r from-purple-500 to-blue-500'}" style="width:${pct}%"></div></div><div class="flex justify-between text-sm"><span class="text-slate-400">נוצל: <b>₪${used.toLocaleString()}</b></span><span class="${rem<0?'text-red-400':'text-green-400'} font-bold">${rem<0?'חריגה: ':'נותר: '}₪${Math.abs(rem).toLocaleString()}</span></div><button onclick="deletePlan('${p.id}'); event.stopPropagation();" class="absolute top-4 left-4 text-slate-600 hover:text-red-500 z-10 p-2"><i class="fas fa-trash"></i></button></div>`; }).join(''); }
+        function renderPlanner(){ const c=document.getElementById('plansContainer'); c.innerHTML=plans.length===0?'<div class="col-span-full text-center py-20 text-slate-500">אין פרויקטים</div>':plans.map(p=>{ const limit=Number(p.limit)||0, used=items.filter(i=>i.linkedPlanId===p.id).reduce((s,i)=>s+(Number(i.estimatedCost)||0),0), pct=limit>0?Math.min((used/limit)*100,100):0, rem=limit-used; 
+            const dateDisplay = p.startDate ? `<div class="text-[10px] text-slate-400 mt-2 flex items-center gap-1"><i class="far fa-calendar-alt"></i> ${new Date(p.startDate).toLocaleDateString('he-IL')} - ${p.endDate ? new Date(p.endDate).toLocaleDateString('he-IL') : '...'}</div>` : '';
+            return `<div onclick="openDetailModal('${p.id}')" class="glass p-5 rounded-2xl hover:bg-white/5 cursor-pointer relative group border border-white/5"><div class="flex justify-between mb-3"><div><h3 class="font-bold text-lg text-white">${p.name}</h3><div class="text-[10px] text-slate-400 mt-1">${p.category||''} • ${p.owner||''}</div>${dateDisplay}</div><div class="text-right"><p class="text-[10px] text-slate-400">יעד</p><p class="font-bold text-purple-400">₪${limit.toLocaleString()}</p></div></div><div class="w-full bg-black/30 h-3 rounded-full overflow-hidden mb-3"><div class="h-full ${rem<0?'bg-red-500':'bg-gradient-to-r from-purple-500 to-blue-500'}" style="width:${pct}%"></div></div><div class="flex justify-between text-sm"><span class="text-slate-400">נוצל: <b>₪${used.toLocaleString()}</b></span><span class="${rem<0?'text-red-400':'text-green-400'} font-bold">${rem<0?'חריגה: ':'נותר: '}₪${Math.abs(rem).toLocaleString()}</span></div><button onclick="deletePlan('${p.id}'); event.stopPropagation();" class="absolute top-4 left-4 text-slate-600 hover:text-red-500 z-10 p-2"><i class="fas fa-trash"></i></button></div>`; }).join(''); }
         function exportToExcel(){ const ws=XLSX.utils.json_to_sheet(items.map(i=>({"שם":i.name,"סכום":i.estimatedCost}))); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Data"); XLSX.writeFile(wb,"HomeOS_Space.xlsx"); }
         function resetData(){ if(confirm('השמדה עצמית?')) items.concat(plans).concat(contacts).forEach(x=>db.collection(x.phone?'family_contacts':(x.limit?'family_plans':'family_transactions')).doc(x.id).delete()); }
     </script>
