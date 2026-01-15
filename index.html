@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl" class="overflow-hidden">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HomeOS V114 - Mobile Fix</title>
+    <title>HomeOS V115 - Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,54 +17,56 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
     <style>
-        /* CRITICAL MOBILE FIXES */
+        /* BASE STYLES */
         body { 
             font-family: 'Heebo', sans-serif; 
             background-color: #0f172a; 
             color: white; 
-            position: fixed; /* Prevents side scrolling */
-            width: 100%; 
-            height: 100%; 
-            overflow: hidden; 
+            margin: 0; 
+            padding: 0; 
+            overflow-x: hidden; /* Critical for Mobile */
+            min-height: 100vh;
             -webkit-tap-highlight-color: transparent;
         }
-        
-        /* Prevent Input Zoom on iPhone */
+
+        /* Prevent Zoom on Input */
         input, select, textarea { font-size: 16px !important; }
-        
-        /* Scrollbar Styling */
-        .custom-scrollbar { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.5); border-radius: 10px; }
-        
-        .glass { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); }
+
+        /* Glass Effects */
+        .glass { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); }
         .glass-heavy { background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.1); }
-        
+
+        /* Animations */
         .animate-float { animation: float 6s ease-in-out infinite; }
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-6px); } 100% { transform: translateY(0px); } }
         
         .modal-enter { animation: modalUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes modalUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes modalUp { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
+        /* Inputs */
         input, select { background: #0f172a !important; border: 1px solid #334155 !important; color: white !important; height: 50px; }
         input:focus, select:focus { border-color: #8b5cf6 !important; ring: 2px solid #8b5cf6; }
-        
-        /* Background Wrapper to prevent overflow */
-        #bg-wrapper { position: fixed; inset: 0; overflow: hidden; z-index: -1; pointer-events: none; }
-        .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.4; }
+
+        /* Background Orbs */
+        #bg-fixed { position: fixed; inset: 0; z-index: -10; overflow: hidden; pointer-events: none; width: 100vw; height: 100vh; }
+        .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.4; }
     </style>
 </head>
 <body>
 
-    <div id="bg-wrapper">
+    <div id="bg-fixed">
         <div class="orb w-[300px] h-[300px] bg-purple-600 top-[-50px] left-[-50px]"></div>
         <div class="orb w-[300px] h-[300px] bg-blue-600 bottom-[-50px] right-[-50px]"></div>
     </div>
 
     <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-slate-900/95 backdrop-blur-xl z-[100] p-6">
         <div class="glass p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center modal-enter">
-            <div class="w-20 h-20 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/40 animate-float">
+            <div class="w-20 h-20 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg animate-float">
                 <i class="fas fa-rocket text-4xl text-white"></i>
             </div>
             <h2 class="text-3xl font-black mb-2 text-white">HomeOS</h2>
@@ -76,8 +78,8 @@
         </div>
     </div>
 
-    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm transition-opacity"></div>
-    <aside id="sidebar" class="fixed inset-y-0 right-0 w-72 glass-heavy z-50 transition-transform duration-300 flex flex-col transform translate-x-full shadow-2xl">
+    <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-[60] hidden backdrop-blur-sm transition-opacity"></div>
+    <aside id="sidebar" class="fixed inset-y-0 right-0 w-72 glass-heavy z-[70] transition-transform duration-300 flex flex-col transform translate-x-full shadow-2xl">
         <div class="p-8 flex items-center gap-4 border-b border-white/5">
             <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center text-white"><i class="fas fa-user-astronaut"></i></div>
             <div><h1 class="text-xl font-black tracking-wider">HOME<span class="text-purple-400">OS</span></h1><p class="text-[10px] font-bold text-slate-400" id="currentUserDisplaySidebar">USER</p></div>
@@ -95,7 +97,7 @@
         <div class="p-6 border-t border-white/5"><button onclick="openProfileModal()" class="w-full text-center text-xs text-purple-400 font-bold py-2">הגדרות חשבון</button></div>
     </aside>
 
-    <div class="w-full h-full flex flex-col relative z-10">
+    <div class="min-h-screen flex flex-col relative z-10 w-full overflow-x-hidden">
         <header class="p-5 flex justify-between items-center z-30 shrink-0">
             <div class="flex items-center gap-4">
                 <button onclick="toggleSidebar()" class="w-12 h-12 glass rounded-2xl flex items-center justify-center text-white active:scale-95 transition"><i class="fas fa-bars text-xl"></i></button>
@@ -110,7 +112,7 @@
             </div>
         </header>
 
-        <main class="flex-1 custom-scrollbar p-4 pb-24 w-full max-w-lg mx-auto" id="contentArea">
+        <main class="flex-1 p-4 pb-28 w-full max-w-lg mx-auto" id="contentArea">
             <div id="view-dashboard" class="space-y-6">
                 <div class="glass p-6 rounded-3xl relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20"></div>
@@ -131,37 +133,51 @@
         <div id="toastContainer" class="fixed bottom-24 right-6 left-6 z-[100] flex flex-col gap-2 pointer-events-none"></div>
     </div>
 
-    <div id="profileModal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-6"><div class="glass-heavy w-full max-w-sm rounded-3xl border border-white/10 shadow-2xl flex flex-col modal-enter"><div class="p-6 border-b border-white/10 flex justify-between items-center bg-white/5"><h3 class="text-xl font-black text-white">פרופיל אישי</h3><button onclick="closeModal('profileModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="p-6 space-y-6"><div class="text-center"><div class="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full mx-auto flex items-center justify-center text-3xl font-bold mb-3 shadow-lg"><i class="fas fa-user-astronaut text-white"></i></div><p class="text-slate-400 text-sm">מחובר כ:</p><p class="text-xl font-bold text-white" id="profileEmailDisplay">...</p></div><div class="border-t border-white/10 pt-4"><label class="text-xs text-slate-400 mb-2 block">שינוי סיסמה</label><div class="flex gap-2"><input type="password" id="newPasswordInput" placeholder="סיסמה חדשה" class="w-full px-4 rounded-xl text-sm"><button onclick="changePassword()" class="px-4 rounded-xl bg-slate-700 text-white font-bold text-sm whitespace-nowrap">עדכן</button></div></div><div class="border-t border-white/10 pt-4"><button onclick="doLogout()" class="w-full py-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition"><i class="fas fa-sign-out-alt"></i> התנתק</button></div></div></div></div>
+    <div id="profileModal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="glass-heavy w-full max-w-sm rounded-3xl border border-white/10 shadow-2xl flex flex-col modal-enter">
+            <div class="p-6 border-b border-white/10 flex justify-between items-center bg-white/5"><h3 class="text-xl font-black text-white">פרופיל אישי</h3><button onclick="closeModal('profileModal')" class="text-white"><i class="fas fa-times"></i></button></div>
+            <div class="p-6 space-y-6">
+                <div class="text-center"><div class="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full mx-auto flex items-center justify-center text-3xl font-bold mb-3 shadow-lg"><i class="fas fa-user-astronaut text-white"></i></div><p class="text-slate-400 text-sm">מחובר כ:</p><p class="text-xl font-bold text-white" id="profileEmailDisplay">...</p></div>
+                <div class="border-t border-white/10 pt-4"><label class="text-xs text-slate-400 mb-2 block">שינוי סיסמה</label><div class="flex gap-2"><input type="password" id="newPasswordInput" placeholder="סיסמה חדשה" class="w-full px-4 rounded-xl text-sm"><button onclick="changePassword()" class="px-4 rounded-xl bg-slate-700 text-white font-bold text-sm whitespace-nowrap">עדכן</button></div></div>
+                <div class="border-t border-white/10 pt-4"><button onclick="doLogout()" class="w-full py-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 font-bold flex items-center justify-center gap-2 hover:bg-red-500/20 transition"><i class="fas fa-sign-out-alt"></i> התנתק</button></div>
+            </div>
+        </div>
+    </div>
 
-    <div id="transactionModal" class="fixed inset-0 z-[80] hidden items-end md:items-center justify-center bg-black/80 backdrop-blur-sm sm:p-4">
-        <div class="glass-heavy w-full md:max-w-md bg-[#1e293b] rounded-t-3xl md:rounded-3xl border-t md:border border-white/10 shadow-2xl flex flex-col max-h-[90vh] modal-enter transition-all duration-300" id="modalBox">
+    <div id="transactionModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="glass-heavy w-full max-w-md rounded-3xl border border-white/10 shadow-2xl flex flex-col max-h-[90vh] modal-enter relative" id="modalBox">
             <div class="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                 <h3 id="modalTitle" class="text-xl font-black text-white">הוספה</h3>
                 <button onclick="closeModal('transactionModal')" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white"><i class="fas fa-times"></i></button>
             </div>
+            
             <div id="projectContextBanner" class="hidden bg-purple-600/20 px-6 py-2 border-b border-white/5">
                 <p class="text-xs text-purple-300 font-bold flex items-center gap-2"><i class="fas fa-link"></i> <span id="projectContextName"></span></p>
             </div>
+
             <div class="p-6 space-y-5 overflow-y-auto">
                 <input type="hidden" id="editId"><input type="hidden" id="linkedPlanId"><input type="hidden" id="linkedPlanName">
+                
                 <div id="advancedFields">
                     <div class="flex bg-black/30 p-1 rounded-xl mb-4 border border-white/5"><button onclick="setType('expense')" id="btnTypeExpense" class="flex-1 py-3 rounded-lg font-bold text-sm transition">הוצאה</button><button onclick="setType('income')" id="btnTypeIncome" class="flex-1 py-3 rounded-lg font-bold text-sm transition">הכנסה</button></div>
                     <input type="hidden" id="pType" value="expense">
                     <div class="grid grid-cols-2 gap-4 mb-4"><div><label class="text-xs text-slate-400 mb-1 block">סטטוס</label><select id="pStatus" class="w-full px-3 rounded-xl text-sm"><option value="planned">📅 עתידי</option><option value="in-progress">💳 בתהליך</option><option value="done">✅ שולם</option></select></div><div><label class="text-xs text-slate-400 mb-1 block">שיוך</label><select id="pOwner" class="w-full px-3 rounded-xl text-sm"><option value="משותף">🏠 משותף</option><option value="חגי">👨 חגי</option><option value="אמבר">👩 אמבר</option></select></div></div>
                     <div class="mb-4"><label class="text-xs text-slate-400 mb-1 block">קטגוריה</label><select id="pDept" class="w-full px-3 rounded-xl text-sm"></select></div>
                 </div>
+
                 <div><label class="text-xs text-slate-400 mb-1 block">תיאור</label><input type="text" id="pName" class="w-full px-4 rounded-xl text-lg font-bold" placeholder="מה קנינו?"></div>
                 <div class="grid grid-cols-2 gap-4"><div><label class="text-xs text-slate-400 mb-1 block">סכום</label><input type="number" id="pCost" class="w-full px-4 rounded-xl font-mono text-xl font-bold text-red-400 bg-red-500/10" placeholder="0"></div><div><label class="text-xs text-slate-400 mb-1 block">תאריך</label><input type="date" id="pStart" class="w-full px-4 rounded-xl text-sm"></div></div>
             </div>
-            <div class="p-6 border-t border-white/10 flex gap-3 bg-black/20 pb-8 md:pb-6">
+            
+            <div class="p-6 border-t border-white/10 flex gap-3 bg-black/20">
                 <button onclick="deleteItem()" id="btnDelete" class="w-12 h-12 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 hidden"><i class="fas fa-trash"></i></button>
                 <button onclick="saveItem()" class="flex-1 h-12 rounded-xl bg-purple-600 text-white font-bold shadow-lg text-lg">שמור</button>
             </div>
         </div>
     </div>
 
-    <div id="plannerDetailModal" class="fixed inset-0 z-[60] hidden items-end md:items-center justify-center bg-black/90 backdrop-blur-sm sm:p-4">
-        <div class="glass-heavy w-full md:max-w-4xl h-[92vh] md:h-[85vh] rounded-t-3xl md:rounded-3xl border border-white/10 shadow-2xl flex flex-col modal-enter overflow-hidden">
+    <div id="plannerDetailModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+        <div class="glass-heavy w-full max-w-4xl h-[85vh] rounded-3xl border border-white/10 shadow-2xl flex flex-col modal-enter overflow-hidden">
             <div class="p-6 border-b border-white/10 bg-gradient-to-r from-purple-900 to-indigo-900 flex justify-between items-center shrink-0">
                 <div><h3 class="text-2xl font-black text-white" id="detailPlanName"></h3><p class="text-purple-200 text-xs mt-1" id="detailPlanLimit"></p></div>
                 <div class="flex items-center gap-2"><button onclick="openTransactionForPlan()" class="bg-white/20 px-4 py-2 rounded-xl font-bold text-sm text-white shadow-lg"><i class="fas fa-plus"></i></button><button onclick="closeModal('plannerDetailModal')" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"><i class="fas fa-times"></i></button></div>
@@ -178,8 +194,8 @@
         </div>
     </div>
 
-    <div id="plannerHeaderModal" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-6"><div class="glass-heavy w-full max-w-sm rounded-3xl border border-white/10 shadow-2xl flex flex-col modal-enter"><div class="p-6 border-b border-white/10 bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-t-3xl flex justify-between items-center"><h3 class="text-xl font-black text-white">פרויקט חדש</h3><button onclick="closeModal('plannerHeaderModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="p-6 space-y-4"><input type="hidden" id="editPlanId"><div><label class="text-xs text-slate-400 block mb-1">שם</label><input type="text" id="planName" class="w-full px-4 rounded-xl"></div><div><label class="text-xs text-slate-400 block mb-1">תקציב</label><input type="number" id="planLimit" class="w-full px-4 rounded-xl font-mono text-lg font-bold"></div></div><div class="p-6 pt-0"><button onclick="savePlanHeader()" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold shadow-lg">שמור</button></div></div></div>
-    <div id="contactModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-6"><div class="glass-heavy w-full max-w-sm rounded-3xl border border-white/10 shadow-2xl flex flex-col modal-enter"><div class="p-6 border-b border-white/10 bg-blue-900/30 rounded-t-3xl flex justify-between items-center"><h3 class="text-xl font-black text-blue-200">איש קשר</h3><button onclick="closeModal('contactModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="p-6 space-y-4"><input type="text" id="contactName" placeholder="שם" class="w-full px-4 rounded-xl"><input type="text" id="contactRole" placeholder="תפקיד" class="w-full px-4 rounded-xl"><input type="tel" id="contactPhone" placeholder="טלפון" class="w-full px-4 rounded-xl font-mono"><input type="email" id="contactEmail" placeholder="אימייל" class="w-full px-4 rounded-xl"></div><div class="p-6 pt-0"><button onclick="saveContact()" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg">שמור</button></div></div></div>
+    <div id="plannerHeaderModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4"><div class="glass-heavy w-full max-w-sm rounded-3xl border border-white/10 shadow-2xl flex flex-col modal-enter"><div class="p-6 border-b border-white/10 bg-gradient-to-r from-purple-900/50 to-blue-900/50 rounded-t-3xl flex justify-between items-center"><h3 class="text-xl font-black text-white">פרויקט חדש</h3><button onclick="closeModal('plannerHeaderModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="p-6 space-y-4"><input type="hidden" id="editPlanId"><div><label class="text-xs text-slate-400 block mb-1">שם</label><input type="text" id="planName" class="w-full px-4 rounded-xl"></div><div><label class="text-xs text-slate-400 block mb-1">תקציב</label><input type="number" id="planLimit" class="w-full px-4 rounded-xl font-mono text-lg font-bold"></div></div><div class="p-6 pt-0"><button onclick="savePlanHeader()" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold shadow-lg">שמור</button></div></div></div>
+    <div id="contactModal" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4"><div class="glass-heavy w-full max-w-sm rounded-3xl border border-white/10 shadow-2xl flex flex-col modal-enter"><div class="p-6 border-b border-white/10 bg-blue-900/30 rounded-t-3xl flex justify-between items-center"><h3 class="text-xl font-black text-blue-200">איש קשר</h3><button onclick="closeModal('contactModal')" class="text-white"><i class="fas fa-times"></i></button></div><div class="p-6 space-y-4"><input type="text" id="contactName" placeholder="שם" class="w-full px-4 rounded-xl"><input type="text" id="contactRole" placeholder="תפקיד" class="w-full px-4 rounded-xl"><input type="tel" id="contactPhone" placeholder="טלפון" class="w-full px-4 rounded-xl font-mono"><input type="email" id="contactEmail" placeholder="אימייל" class="w-full px-4 rounded-xl"></div><div class="p-6 pt-0"><button onclick="saveContact()" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg">שמור</button></div></div></div>
 
     <script>
         const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID"; // UPDATE
@@ -219,7 +235,6 @@
         function handleAuth() { auth.signInWithEmailAndPassword(document.getElementById('emailInput').value, document.getElementById('passInput').value).catch(e => { document.getElementById('authError').textContent = e.message; document.getElementById('authError').classList.remove('hidden'); }); }
 
         function initApp() {
-            // NEW COLLECTIONS FOR FAMILY!
             db.collection('family_transactions').onSnapshot(snap => { items = snap.docs.map(d => ({id: d.id, ...d.data()})); updateDashboard(); renderTable(); 
                 const detailId = document.getElementById('detailPlanIdHidden').value; if(detailId && !document.getElementById('plannerDetailModal').classList.contains('hidden')) updateDetailModal(detailId); 
             });
@@ -228,10 +243,80 @@
             renderNotifications();
         }
 
+        // --- SMART MODAL LOGIC (FIXED) ---
+        function openTransactionForPlan() {
+            const planId = document.getElementById('detailPlanIdHidden').value;
+            const p = plans.find(x => x.id === planId);
+            openModal('project_item', p.name); 
+            document.getElementById('linkedPlanId').value = planId;
+            document.getElementById('linkedPlanName').value = p.name;
+            // Defaults
+            document.getElementById('pDept').value = "📦 שונות"; 
+            document.getElementById('pStatus').value = "done"; 
+            document.getElementById('pOwner').value = "משותף";
+        }
+
+        function openModal(mode, extraTitle = '') { 
+            document.getElementById('transactionModal').classList.remove('hidden'); 
+            document.getElementById('transactionModal').classList.add('flex');
+            
+            // Clean up
+            if (mode === 'new' || mode === 'project_item') {
+                document.getElementById('editId').value='';
+                document.getElementById('pName').value=''; 
+                document.getElementById('pCost').value=''; 
+                document.getElementById('btnDelete').classList.add('hidden'); 
+                document.getElementById('pStart').valueAsDate=new Date(); 
+                setType('expense');
+            }
+
+            const adv = document.getElementById('advancedFields');
+            const ctxBanner = document.getElementById('projectContextBanner');
+
+            if (mode === 'project_item') {
+                adv.classList.add('hidden');
+                ctxBanner.classList.remove('hidden');
+                document.getElementById('projectContextName').textContent = extraTitle;
+                document.getElementById('modalTitle').textContent = "הוספה מהירה";
+                document.getElementById('pName').placeholder = "שם הפריט";
+            } else {
+                adv.classList.remove('hidden');
+                ctxBanner.classList.add('hidden');
+                document.getElementById('modalTitle').textContent = mode === 'edit' ? "עריכה" : "הוספה";
+                document.getElementById('pName').placeholder = "תיאור";
+                if(mode==='new'){
+                    document.getElementById('linkedPlanId').value='';
+                    document.getElementById('linkedPlanName').value='';
+                }
+            }
+        }
+
+        function editItem(id) { 
+            const i=items.find(x=>x.id===id); if(!i) return; 
+            
+            // Check context
+            if(i.linkedPlanId) {
+                openModal('project_item', i.linkedPlanName);
+            } else {
+                openModal('edit');
+            }
+
+            setType(i.type||'expense'); 
+            document.getElementById('editId').value=id; 
+            document.getElementById('pName').value=i.name; 
+            document.getElementById('pStatus').value=i.status; 
+            document.getElementById('pDept').value=i.department; 
+            document.getElementById('pOwner').value=i.owner; 
+            document.getElementById('pStart').value=i.startDate; 
+            document.getElementById('pCost').value=i.estimatedCost; 
+            document.getElementById('linkedPlanId').value=i.linkedPlanId||''; 
+            document.getElementById('btnDelete').classList.remove('hidden'); 
+        }
+
+        // --- Standard Logic ---
         function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); document.getElementById('profileModal').classList.add('flex'); document.getElementById('newPasswordInput').value = ''; }
         function changePassword() { const newPass = document.getElementById('newPasswordInput').value; if (newPass.length < 6) return showToast('סיסמה קצרה מדי'); const user = firebase.auth().currentUser; user.updatePassword(newPass).then(() => { showToast('הסיסמה שונתה!'); closeModal('profileModal'); }).catch((e) => { if(e.code==='auth/requires-recent-login') { alert('נא להתחבר מחדש'); doLogout(); } else showToast('שגיאה: '+e.message); }); }
         function doLogout() { auth.signOut().then(() => window.location.reload()); }
-
         function openDetailModal(id) { document.getElementById('detailPlanIdHidden').value=id; document.getElementById('plannerDetailModal').classList.remove('hidden'); document.getElementById('plannerDetailModal').classList.add('flex'); updateDetailModal(id); }
         function updateDetailModal(id) {
             const p = plans.find(x => x.id === id); if(!p) return;
@@ -251,65 +336,9 @@
                 <div onclick="editItem('${i.id}')" class="glass p-4 rounded-2xl border border-white/5 hover:bg-white/10 cursor-pointer flex justify-between items-center transition group">
                     <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg"><i class="fas fa-rocket"></i></div><div><h4 class="font-bold text-white text-sm">${i.name}</h4><p class="text-[10px] text-slate-400">${i.startDate} • ${i.status==='done'?'✅':'⏳'}</p></div></div><div class="text-left"><p class="font-black text-lg text-white">₪${Number(i.estimatedCost).toLocaleString()}</p></div></div>`).join('');
         }
-
-        function openTransactionForPlan() {
-            const planId = document.getElementById('detailPlanIdHidden').value;
-            const p = plans.find(x => x.id === planId);
-            openModal('project_item', p.name); 
-            document.getElementById('linkedPlanId').value = planId;
-            document.getElementById('linkedPlanName').value = p.name;
-            document.getElementById('pDept').value = "📦 שונות"; 
-            document.getElementById('pStatus').value = "done"; 
-            document.getElementById('pOwner').value = "משותף";
-        }
-
-        function openModal(mode, extraTitle = '') { 
-            document.getElementById('transactionModal').classList.remove('hidden'); 
-            document.getElementById('transactionModal').classList.add('flex');
-            if (mode === 'new' || mode === 'project_item') {
-                document.getElementById('editId').value='';
-                document.getElementById('pName').value=''; 
-                document.getElementById('pCost').value=''; 
-                document.getElementById('btnDelete').classList.add('hidden'); 
-                document.getElementById('pStart').valueAsDate=new Date(); 
-                setType('expense');
-            }
-            const adv = document.getElementById('advancedFields');
-            const ctxBanner = document.getElementById('projectContextBanner');
-            if (mode === 'project_item') {
-                adv.classList.add('hidden');
-                ctxBanner.classList.remove('hidden');
-                document.getElementById('projectContextName').textContent = extraTitle;
-                document.getElementById('modalTitle').textContent = "הוספה מהירה";
-                document.getElementById('pName').placeholder = "שם הפריט";
-            } else {
-                adv.classList.remove('hidden');
-                ctxBanner.classList.add('hidden');
-                document.getElementById('modalTitle').textContent = mode === 'edit' ? "עריכה" : "הוספה";
-                document.getElementById('pName').placeholder = "תיאור";
-                if(mode==='new'){ document.getElementById('linkedPlanId').value=''; document.getElementById('linkedPlanName').value=''; }
-            }
-        }
-
-        function editItem(id) { 
-            const i=items.find(x=>x.id===id); if(!i) return; 
-            if(i.linkedPlanId) openModal('project_item', i.linkedPlanName); else openModal('edit');
-            setType(i.type||'expense'); 
-            document.getElementById('editId').value=id; 
-            document.getElementById('pName').value=i.name; 
-            document.getElementById('pStatus').value=i.status; 
-            document.getElementById('pDept').value=i.department; 
-            document.getElementById('pOwner').value=i.owner; 
-            document.getElementById('pStart').value=i.startDate; 
-            document.getElementById('pCost').value=i.estimatedCost; 
-            document.getElementById('linkedPlanId').value=i.linkedPlanId||''; 
-            document.getElementById('btnDelete').classList.remove('hidden'); 
-        }
-
         const CAT_EXPENSE = ['🛒 סופר','🏠 משכנתא','🚗 רכב','🎓 חינוך','✈️ בילוי','💡 חשבונות','💊 בריאות','📦 שונות'];
         const CAT_INCOME = ['💰 משכורת','🎁 מענק','📈 השקעות'];
         function setType(t) { document.getElementById('pType').value=t; const e=document.getElementById('btnTypeExpense'), i=document.getElementById('btnTypeIncome'), s=document.getElementById('pDept'), c=document.getElementById('pCost'); if(t==='expense'){ e.className="flex-1 py-3 rounded-lg font-bold bg-red-500 text-white shadow-lg"; i.className="flex-1 py-3 rounded-lg font-bold text-slate-400 hover:text-white"; s.innerHTML=CAT_EXPENSE.map(x=>`<option>${x}</option>`).join(''); c.classList.remove('text-green-400'); c.classList.add('text-red-400'); } else { i.className="flex-1 py-3 rounded-lg font-bold bg-green-500 text-white shadow-lg"; e.className="flex-1 py-3 rounded-lg font-bold text-slate-400 hover:text-white"; s.innerHTML=CAT_INCOME.map(x=>`<option>${x}</option>`).join(''); c.classList.remove('text-red-400'); c.classList.add('text-green-400'); } }
-        
         function saveItem() {
             const id=document.getElementById('editId').value, name=document.getElementById('pName').value, cost=document.getElementById('pCost').value;
             const data={type:document.getElementById('pType').value,name:name,status:document.getElementById('pStatus').value,department:document.getElementById('pDept').value,owner:document.getElementById('pOwner').value,startDate:document.getElementById('pStart').value,estimatedCost:Number(cost),linkedPlanId:document.getElementById('linkedPlanId').value||null,linkedPlanName:document.getElementById('linkedPlanName').value||null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
@@ -318,7 +347,6 @@
         }
         function deleteItem(){ if(confirm('למחוק?')) db.collection('family_transactions').doc(document.getElementById('editId').value).delete().then(()=>closeModal('transactionModal')); }
         function sendEmailNotification(name, cost) { const targetEmail=currentEmail.includes('hagay')?'Ambartimsit@gmail.com':'Hagay1989@gmail.com'; const targetName=currentEmail.includes('hagay')?'אמבר':'חגי'; emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { to_name: targetName, to_email: targetEmail, from_name: currentUser, message: `נוספה: ${name} (₪${cost})` }); }
-        
         function showToast(msg) { const c=document.getElementById('toastContainer'), t=document.createElement('div'); t.className="glass p-3 rounded-xl flex items-center gap-3 text-white pointer-events-auto animate-float border border-white/10 shadow-lg backdrop-blur-md min-w-[250px]"; t.innerHTML=`<i class="fas fa-check-circle text-green-400 text-lg"></i><div><p class="font-bold text-sm text-slate-200">${msg}</p></div>`; c.appendChild(t); setTimeout(()=>t.remove(),3000); }
         function addNotification(msg) { notifications.unshift({msg, time: new Date()}); document.getElementById('notifBadge').classList.remove('hidden'); renderNotifications(); }
         function renderNotifications() { document.getElementById('notifList').innerHTML = notifications.length===0 ? '<div class="p-4 text-center text-xs text-slate-500">ריק...</div>' : notifications.map(n => `<div class="p-3 border-b border-white/5 hover:bg-white/5 transition"><p class="text-xs font-bold text-white">${n.msg}</p><p class="text-[10px] text-slate-400">${n.time.toLocaleTimeString()}</p></div>`).join(''); }
